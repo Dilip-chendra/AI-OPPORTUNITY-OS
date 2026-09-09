@@ -1,0 +1,167 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: #F8FAFC;
+    --surface: #FFFFFF;
+    --surface-elevated: #F1F5F9;
+    --border: #E2E8F0;
+    --border-subtle: #EDF2F7;
+    --text-1: #0A0F1D;
+    --text-2: #475569;
+    --text-3: #94A3B8;
+    --accent: #0284C7;
+    --accent-glow: rgba(2, 132, 199, 0.15);
+    --success: #059669;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --ai: #7C3AED;
+  }
+  
+  .dark {
+    --bg: #07090E;
+    --surface: #0D111A;
+    --surface-elevated: #131926;
+    --border: #1E2738;
+    --border-subtle: #141B29;
+    --text-1: #F8FAFC;
+    --text-2: #94A3B8;
+    --text-3: #475569;
+    --accent: #06B6D4;
+    --accent-glow: rgba(6, 182, 212, 0.2);
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --ai: #8B5CF6;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border-color: var(--border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text-1);
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+  ::selection { background: var(--accent-glow); color: var(--text-1); }
+}
+
+@layer components {
+  .skeleton {
+    background: linear-gradient(90deg, var(--border) 25%, var(--surface) 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .card-base {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-2);
+    transition: all 0.12s ease;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .nav-link:hover {
+    background: var(--border);
+    color: var(--text-1);
+  }
+  .nav-link.active {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563EB;
+  }
+  .dark .nav-link.active {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60A5FA;
+  }
+
+  .page-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-1);
+    margin-bottom: 0.25rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-2);
+  }
+
+  .section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-1);
+    margin-bottom: 1rem;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseRing {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes networkPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.animate-fade-in { animation: fadeIn 0.25s ease forwards; }
+.animate-slide-up { animation: slideUp 0.3s ease forwards; }
+.animate-pulse-ring { animation: pulseRing 1.5s ease-out infinite; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-network-pulse { animation: networkPulse 2s ease-in-out infinite; }
