@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { authApi } from '@/lib/api/auth'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/lib/hooks/use-auth'
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
 
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const { setUser } = useAuth()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,9 +23,14 @@ export default function LoginPage() {
     try {
       const res = await authApi.login({ email, password })
       localStorage.setItem('access_token', res.access_token)
+      document.cookie = `access_token=${res.access_token}; path=/; max-age=86400; SameSite=Lax`
+      if (res.user) {
+        setUser(res.user)
+      }
       router.push('/overview')
     } catch (err: any) {
-      setError(err.message || 'Login failed')
+      const detail = err.response?.data?.detail
+      setError(detail || (err.response?.status === 401 ? 'Invalid email or password. If you do not have an account yet, please sign up below.' : err.message || 'Login failed'))
     } finally {
       setLoading(false)
     }
@@ -53,11 +60,16 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-6">
             <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-            {error && <div className="text-red-500 text-sm">{error}</div>}
+            {error && (
+              <div className="p-3 text-sm rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+                {error}
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
+
           <div className="text-center text-sm text-[var(--text-2)]">
             Don't have an account? <Link href="/signup" className="text-blue-500 hover:underline">Sign up</Link>
           </div>

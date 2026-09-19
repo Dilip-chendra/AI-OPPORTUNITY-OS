@@ -28,21 +28,32 @@ async def platform_stats(admin: User = Depends(get_current_admin), db: AsyncSess
         "total_organizations": orgs_count,
         "total_opportunities": opps_count,
         "total_scores_computed": scores_count,
-        "active_crawlers": 7,
+        "active_crawlers": len(ingestion_service.adapters),
         "engine_mode": "Autonomous"
     }
 
-@router.post('/ingest')
-async def trigger_ingestion(
-    category: Optional[str] = Query(None),
-    is_demo: bool = Query(True),
+@router.get('/ingestion/status')
+async def ingestion_status(
     admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Triggers an autonomous discovery and ingestion batch across 7 opportunity channels.
+    Returns the real-time operational status of external ingestion adapters, database counts, and sync history.
     """
-    result = await ingestion_service.ingest_batch(db, is_demo=is_demo, category_filter=category)
+    return await ingestion_service.get_pipeline_status(db)
+
+@router.post('/ingestion/trigger')
+@router.post('/ingest')
+async def trigger_ingestion(
+    is_demo: bool = Query(False),
+    limit: int = Query(15, ge=1, le=50),
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Triggers an autonomous discovery and ingestion batch across live external source adapters (USASpending, World Bank, UK Contracts).
+    """
+    result = await ingestion_service.ingest_batch(db, is_demo=is_demo, limit_per_adapter=limit)
     return result
 
 @router.post('/recalculate-scores')

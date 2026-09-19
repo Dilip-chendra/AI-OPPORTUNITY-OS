@@ -1,14 +1,17 @@
+export type UserRole = 'owner' | 'admin' | 'manager' | 'analyst' | 'member' | 'viewer';
+
 export interface User {
   id: string;
   email: string;
   full_name: string;
   organization_id?: string;
   organization_name?: string;
-  role?: string;
+  role?: UserRole | string;
   is_admin?: boolean;
   is_active?: boolean;
   created_at?: string;
 }
+
 
 export interface Organization {
   id: string;
@@ -22,25 +25,41 @@ export interface BusinessProfile {
   id?: string;
   organization_id?: string;
   company_name: string;
+  trade_name?: string;
+  legal_name?: string;
+  registration_number?: string;
   industry?: string;
   sub_industry?: string;
   country?: string;
   state?: string;
   city?: string;
+  address?: string;
   company_size?: string;
+  technical_headcount?: string;
+  business_stage?: string;
+  enterprise_classification?: string;
   revenue_range?: string;
   description?: string;
   website?: string;
   linkedin?: string;
   founded_year?: string;
+  products_services?: Array<{ name: string; category?: string; description?: string; target_market?: string }>;
   capabilities?: string[] | string;
-  certifications?: string[] | string;
+  tech_stack?: string[] | string;
+  certifications?: any[] | string;
   registrations?: string[] | string;
+  previous_projects?: Array<{ title: string; client?: string; value?: number | string; year?: string; description?: string }>;
   preferred_contract_min?: number | string;
   preferred_contract_max?: number | string;
   preferred_currency?: string;
+  target_markets?: string[];
+  geographic_coverage?: string[];
+  delivery_regions?: string[];
   funding_required?: boolean;
   export_focused?: boolean;
+  consortium_open?: boolean;
+  growth_goals?: string[];
+  documents?: Array<{ id?: string; title: string; document_type: string; file_url?: string; uploaded_at?: string }>;
   onboarding_completed?: boolean;
 }
 

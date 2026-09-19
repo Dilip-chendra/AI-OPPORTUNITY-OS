@@ -26,10 +26,10 @@ class OpportunityService:
         sort_order: str = 'desc',
         is_demo_org: bool = False
     ) -> dict:
-        # Base query — only show demo opps to demo orgs, real opps to real orgs
+        # Base query — show demo + verified public opps to demo orgs, real opps to real orgs
         query = select(Opportunity)
         if is_demo_org:
-            query = query.where(Opportunity.is_demo == True)
+            query = query.where(or_(Opportunity.is_demo == True, Opportunity.is_verified == True))
         else:
             query = query.where(or_(Opportunity.is_demo == False, Opportunity.is_demo == None))
         
@@ -136,7 +136,9 @@ class OpportunityService:
         if not opps:
             fallback = select(Opportunity).where(Opportunity.is_expired == False)
             if is_demo_org:
-                fallback = fallback.where(Opportunity.is_demo == True)
+                fallback = fallback.where(or_(Opportunity.is_demo == True, Opportunity.is_verified == True))
+            else:
+                fallback = fallback.where(or_(Opportunity.is_demo == False, Opportunity.is_demo == None))
             fallback = fallback.order_by(Opportunity.created_at.desc()).limit(limit)
             result2 = await db.execute(fallback)
             opps = list(result2.scalars().all())

@@ -8,9 +8,13 @@ import { MapPin, Bookmark, ExternalLink, Shield, AlertTriangle } from 'lucide-re
 
 import { useState } from 'react'
 import { opportunitiesApi } from '@/lib/api/opportunities'
+import { useAuth } from '@/lib/hooks/use-auth'
+import { RolePermissions } from '@/lib/permissions'
 
 export function OpportunityCard({ opportunity, score, isSaved: initialSaved = false }: any) {
   const router = useRouter()
+  const { user } = useAuth()
+  const canSave = RolePermissions.canSaveOpportunity(user?.role)
   const [saved, setSaved] = useState(initialSaved)
   const [saving, setSaving] = useState(false)
   const deadline = opportunity.deadline ? formatDeadline(opportunity.deadline) : null
@@ -18,8 +22,9 @@ export function OpportunityCard({ opportunity, score, isSaved: initialSaved = fa
 
   const handleToggleSave = async (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (saving) return
+    if (saving || !canSave) return
     setSaving(true)
+
     try {
       if (saved) {
         await opportunitiesApi.unsave(opportunity.id)
@@ -67,11 +72,13 @@ export function OpportunityCard({ opportunity, score, isSaved: initialSaved = fa
             variant="outline"
             size="icon"
             onClick={handleToggleSave}
-            disabled={saving}
+            disabled={saving || !canSave}
+            title={!canSave ? "Viewers cannot save opportunities" : saved ? "Remove from pipeline" : "Save to pipeline"}
             aria-label={saved ? "Remove from pipeline" : "Save to pipeline"}
           >
             <Bookmark className={cn("h-4 w-4 transition-colors", saved ? "fill-blue-500 text-blue-500" : "text-[var(--text-2)]")} />
           </Button>
+
         </div>
       </div>
     </div>

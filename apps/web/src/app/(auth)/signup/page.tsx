@@ -1,9 +1,10 @@
-﻿'use client'
+'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { authApi } from '@/lib/api/auth'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/lib/hooks/use-auth'
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
 
@@ -12,6 +13,7 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const { setUser } = useAuth()
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,6 +28,10 @@ export default function SignupPage() {
         organization_name: formData.organization_name
       })
       localStorage.setItem('access_token', res.access_token)
+      document.cookie = `access_token=${res.access_token}; path=/; max-age=86400; SameSite=Lax`
+      if (res.user) {
+        setUser(res.user)
+      }
       router.push('/onboard')
     } catch (err: any) {
       setError(err.message || 'Signup failed')

@@ -6,11 +6,22 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { businessProfileApi } from '@/lib/api/business-profile'
-import { Sparkles, CheckCircle2, ArrowRight, ArrowLeft, Loader2, Building2, Target, Globe, Shield, Rocket } from 'lucide-react'
+import { useAuth } from '@/lib/hooks/use-auth'
+import { Sparkles, ArrowRight, ArrowLeft, Building2, Target, Globe, Shield, Rocket } from 'lucide-react'
+
+const AVAILABLE_CERTS = [
+  'MSME / Udyam Certificate',
+  'DPIIT Recognized Startup',
+  'GeM Primary Seller Account',
+  'ISO 9001 Quality Management',
+  'ISO 27001 Security Management',
+  'CMMI Maturity Level 3+'
+]
 
 export default function OnboardPage() {
   const [step, setStep] = useState(1)
   const router = useRouter()
+  const { refreshUser } = useAuth()
   const [loading, setLoading] = useState(false)
   const [analyzingProgress, setAnalyzingProgress] = useState(0)
 
@@ -25,10 +36,35 @@ export default function OnboardPage() {
     preferred_contract_min: '500000',
     preferred_contract_max: '50000000',
     capabilities: 'AI, Cloud Migration, Enterprise Software, DevOps',
-    certifications: ['MSME / Udyam', 'DPIIT Startup India', 'ISO 9001'],
+    certifications: ['MSME / Udyam Certificate', 'DPIIT Recognized Startup', 'ISO 9001 Quality Management'],
     funding_required: false,
-    export_focused: false
+    export_focused: false,
+    consortium_open: true
   })
+
+  useEffect(() => {
+    businessProfileApi.get().then((p) => {
+      if (p) {
+        setFormData((prev) => ({
+          ...prev,
+          company_name: p.company_name || prev.company_name,
+          industry: p.industry || prev.industry,
+          company_size: p.company_size || prev.company_size,
+          country: p.country || prev.country,
+          state: p.state || prev.state,
+          city: p.city || prev.city,
+          preferred_currency: p.preferred_currency || prev.preferred_currency,
+          preferred_contract_min: p.preferred_contract_min ? String(p.preferred_contract_min) : prev.preferred_contract_min,
+          preferred_contract_max: p.preferred_contract_max ? String(p.preferred_contract_max) : prev.preferred_contract_max,
+          capabilities: Array.isArray(p.capabilities) ? p.capabilities.join(', ') : (p.capabilities || prev.capabilities),
+          certifications: Array.isArray(p.certifications) && p.certifications.length > 0 ? p.certifications : prev.certifications,
+          funding_required: p.funding_required ?? prev.funding_required,
+          export_focused: p.export_focused ?? prev.export_focused,
+          consortium_open: p.consortium_open ?? prev.consortium_open
+        }))
+      }
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (step === 6) {
@@ -40,10 +76,22 @@ export default function OnboardPage() {
           }
           return prev + 10
         })
-      }, 300)
+      }, 250)
       return () => clearInterval(interval)
     }
   }, [step])
+
+  const toggleCert = (cert: string) => {
+    setFormData((prev) => {
+      const exists = prev.certifications.includes(cert)
+      return {
+        ...prev,
+        certifications: exists
+          ? prev.certifications.filter((c) => c !== cert)
+          : [...prev.certifications, cert]
+      }
+    })
+  }
 
   const handleNext = async () => {
     if (step < 5) {
@@ -51,6 +99,10 @@ export default function OnboardPage() {
     } else if (step === 5) {
       setStep(6)
       try {
+        const capsList = typeof formData.capabilities === 'string'
+          ? formData.capabilities.split(',').map((s) => s.trim()).filter(Boolean)
+          : formData.capabilities
+
         await businessProfileApi.update({
           company_name: formData.company_name,
           industry: formData.industry,
@@ -59,8 +111,13 @@ export default function OnboardPage() {
           state: formData.state,
           city: formData.city,
           preferred_currency: formData.preferred_currency,
+          preferred_contract_min: parseFloat(formData.preferred_contract_min) || 500000,
+          preferred_contract_max: parseFloat(formData.preferred_contract_max) || 50000000,
+          capabilities: capsList,
+          certifications: formData.certifications,
           funding_required: formData.funding_required,
-          export_focused: formData.export_focused
+          export_focused: formData.export_focused,
+          consortium_open: formData.consortium_open
         })
       } catch (e) {
         console.error('Failed to save profile on step 5', e)
@@ -69,6 +126,7 @@ export default function OnboardPage() {
       setLoading(true)
       try {
         await businessProfileApi.completeOnboarding()
+        await refreshUser()
       } catch (err) {
         console.error('Failed to complete onboarding', err)
       } finally {
@@ -159,13 +217,13 @@ export default function OnboardPage() {
               <p className="text-xs text-[var(--text-2)]">Specify contract values and target procurement channels for radar calibration.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
-                  label="Min Target Contract Value (₹ / $)"
+                  label="Min Target Contract Value"
                   type="number"
                   value={formData.preferred_contract_min}
                   onChange={(e) => setFormData({ ...formData, preferred_contract_min: e.target.value })}
                 />
                 <Input
-                  label="Max Target Contract Value (₹ / $)"
+                  label="Max Target Contract Value"
                   type="number"
                   value={formData.preferred_contract_max}
                   onChange={(e) => setFormData({ ...formData, preferred_contract_max: e.target.value })}
@@ -179,6 +237,7 @@ export default function OnboardPage() {
                   { value: 'INR', label: 'INR (₹ Indian Rupee)' },
                   { value: 'USD', label: 'USD ($ US Dollar)' },
                   { value: 'EUR', label: 'EUR (€ Euro)' },
+                  { value: 'GBP', label: 'GBP (£ British Pound)' },
                 ]}
               />
             </div>
@@ -226,19 +285,27 @@ export default function OnboardPage() {
                   Active Certifications & Registrations
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {[
-                    'MSME / Udyam Certificate',
-                    'DPIIT Recognized Startup',
-                    'GeM Primary Seller Account',
-                    'ISO 9001 Quality Management',
-                    'ISO 27001 Security Management',
-                    'CMMI Maturity Level 3+'
-                  ].map((item, idx) => (
-                    <label key={idx} className="flex items-center gap-2 p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-xs cursor-pointer">
-                      <input type="checkbox" defaultChecked={idx < 3} className="rounded text-blue-600" />
-                      <span className="text-[var(--text-1)] font-medium">{item}</span>
-                    </label>
-                  ))}
+                  {AVAILABLE_CERTS.map((item, idx) => {
+                    const isChecked = formData.certifications.includes(item)
+                    return (
+                      <label
+                        key={idx}
+                        className={`flex items-center gap-2 p-3 rounded-lg border text-xs cursor-pointer transition-colors ${
+                          isChecked
+                            ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/30 text-[var(--text-1)]'
+                            : 'border-[var(--border)] bg-[var(--bg)] text-[var(--text-2)]'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleCert(item)}
+                          className="rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="font-medium">{item}</span>
+                      </label>
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -255,14 +322,14 @@ export default function OnboardPage() {
                     onChange={(c) => setFormData({ ...formData, funding_required: c })}
                   />
                   <p className="text-[11px] text-[var(--text-3)] mt-1 ml-11">
-                    Radar will prioritize Ministry grants, R&D awards, and seed funds.
+                    Radar will prioritize Ministry grants, R&D awards, and seed funding.
                   </p>
                 </div>
                 <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg)]">
                   <Switch
                     label="Consortium & Co-Bidding Alliances Open"
-                    checked={true}
-                    onChange={() => {}}
+                    checked={formData.consortium_open}
+                    onChange={(c) => setFormData({ ...formData, consortium_open: c })}
                   />
                   <p className="text-[11px] text-[var(--text-3)] mt-1 ml-11">
                     Allows discovery of co-bidding invites where you can act as sub-contractor or prime.
@@ -289,7 +356,7 @@ export default function OnboardPage() {
                   {analyzingProgress < 40 && 'Analyzing verified Business DNA credentials...'}
                   {analyzingProgress >= 40 && analyzingProgress < 80 && 'Ingesting active government, grant & corporate rosters...'}
                   {analyzingProgress >= 80 && analyzingProgress < 100 && 'Computing 8-dimension match indices...'}
-                  {analyzingProgress === 100 && 'Successfully matched 47 relevant opportunities!'}
+                  {analyzingProgress === 100 && 'Successfully synthesized live radar opportunities!'}
                 </p>
               </div>
             </div>

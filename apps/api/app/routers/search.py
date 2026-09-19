@@ -12,6 +12,7 @@ from typing import Optional
 router = APIRouter()
 
 @router.get('/', response_model=PaginatedResponse[OpportunityListItem])
+@router.get('', response_model=PaginatedResponse[OpportunityListItem])
 async def search_opportunities(
     q: Optional[str] = None,
     category: Optional[str] = None,

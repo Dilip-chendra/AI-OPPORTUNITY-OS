@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes'
 import {
   LayoutDashboard, Radar, Compass, Sparkles,
   Wallet, Building2, Briefcase, Globe, Handshake, Lightbulb, FlaskConical,
-  Bookmark, FileText, FolderOpen, Bot,
+  Bookmark, FileText, FolderOpen, Bot, Shield,
   Fingerprint, Bell, BarChart3, Settings,
   ChevronLeft, ChevronRight, Zap, X
 } from 'lucide-react'
@@ -48,11 +48,12 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    label: 'Workspace',
+    label: 'Pursuit',
     items: [
       { href: '/saved', label: 'Saved', icon: <Bookmark className="h-4 w-4" /> },
       { href: '/applications', label: 'Applications', icon: <FileText className="h-4 w-4" /> },
-      { href: '/workspace', label: 'Workspace', icon: <FolderOpen className="h-4 w-4" /> },
+      { href: '/workspace', label: 'Pursuit Workspace', icon: <FolderOpen className="h-4 w-4" /> },
+      { href: '/workspace/evidence', label: 'Evidence Vault', icon: <Shield className="h-4 w-4" /> },
       { href: '/ai-analyst', label: 'AI Analyst', icon: <Bot className="h-4 w-4" /> },
     ],
   },

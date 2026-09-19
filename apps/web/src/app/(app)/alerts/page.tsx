@@ -18,6 +18,11 @@ export default function AlertsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['alerts-feed'] }),
   })
 
+  const markSingleMutation = useMutation({
+    mutationFn: alertsApi.markRead,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['alerts-feed'] }),
+  })
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -53,10 +58,11 @@ export default function AlertsPage() {
           {data.data.map((alert) => (
             <div
               key={alert.id}
-              className={`p-4 rounded-xl border flex items-start justify-between gap-4 transition-all ${
+              onClick={() => !alert.is_read && markSingleMutation.mutate(alert.id)}
+              className={`p-4 rounded-xl border flex items-start justify-between gap-4 transition-all cursor-pointer ${
                 alert.is_read
-                  ? 'border-[var(--border)] bg-[var(--surface)] opacity-70'
-                  : 'border-blue-500/30 bg-blue-50/20 dark:bg-blue-950/10'
+                  ? 'border-[var(--border)] bg-[var(--surface)] opacity-70 hover:opacity-90'
+                  : 'border-blue-500/30 bg-blue-50/20 dark:bg-blue-950/10 hover:border-blue-500/50'
               }`}
             >
               <div className="flex items-start gap-3">
@@ -70,12 +76,16 @@ export default function AlertsPage() {
                 </div>
               </div>
               {!alert.is_read && (
-                <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0 mt-2" />
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-[10px] text-blue-500 font-medium">Click to read</span>
+                  <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
+                </div>
               )}
             </div>
           ))}
         </div>
       )}
+
     </div>
   )
 }

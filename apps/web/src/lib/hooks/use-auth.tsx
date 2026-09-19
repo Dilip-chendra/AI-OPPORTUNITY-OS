@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, createContext, useContext } from 'react'
+import React, { useState, useEffect, useCallback, createContext, useContext } from 'react'
 import { authApi } from '@/lib/api/auth'
 import type { User } from '@/types'
 
@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
     if (!token) {
       setUser(null)
@@ -37,26 +37,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(u)
     } catch {
       localStorage.removeItem('access_token')
+      if (typeof window !== 'undefined') {
+        document.cookie = 'access_token=; path=/; max-age=0; SameSite=Lax'
+      }
       setUser(null)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     refreshUser()
-  }, [])
+  }, [refreshUser])
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authApi.logout()
     } catch {}
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token')
+      document.cookie = 'access_token=; path=/; max-age=0; SameSite=Lax'
       setUser(null)
       window.location.href = '/login'
     }
-  }
+  }, [])
 
   return (
     <AuthContext.Provider value={{ user, loading, isAuthenticated: !!user, logout, setUser, refreshUser }}>

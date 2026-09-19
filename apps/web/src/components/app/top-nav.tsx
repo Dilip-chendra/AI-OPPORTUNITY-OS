@@ -6,6 +6,8 @@ import { useAuth } from '@/lib/hooks/use-auth'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 
+import { getRoleBadgeConfig } from '@/lib/permissions'
+
 interface TopNavProps {
   sidebarCollapsed?: boolean
   alertCount?: number
@@ -15,6 +17,8 @@ export function TopNav({ sidebarCollapsed, alertCount = 0 }: TopNavProps) {
   const { theme, setTheme } = useTheme()
   const { user, logout } = useAuth()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+
+  const roleConfig = getRoleBadgeConfig(user?.role)
 
   const initials = user?.full_name
     ? user.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
@@ -44,7 +48,19 @@ export function TopNav({ sidebarCollapsed, alertCount = 0 }: TopNavProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1 ml-auto">
+      <div className="flex items-center gap-2 ml-auto">
+        {/* Organization Name & Role Badge (Desktop) */}
+        {user?.organization_name && (
+          <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-md border border-[var(--border)] bg-[var(--bg)] text-xs">
+            <span className="font-medium truncate max-w-[200px]" style={{ color: 'var(--text-2)' }} title={user.organization_name}>
+              {user.organization_name}
+            </span>
+            <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider', roleConfig.color)}>
+              {roleConfig.label}
+            </span>
+          </div>
+        )}
+
         {/* Theme toggle */}
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -81,7 +97,7 @@ export function TopNav({ sidebarCollapsed, alertCount = 0 }: TopNavProps) {
             <div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
               {initials}
             </div>
-            <span className="hidden sm:block text-sm font-medium max-w-[120px] truncate">
+            <span className="hidden sm:block text-sm font-medium max-w-[180px] truncate" title={user?.full_name || 'Account'}>
               {user?.full_name || 'Account'}
             </span>
             <ChevronDown className="h-3 w-3 hidden sm:block" style={{ color: 'var(--text-3)' }} />
@@ -94,17 +110,28 @@ export function TopNav({ sidebarCollapsed, alertCount = 0 }: TopNavProps) {
                 onClick={() => setUserMenuOpen(false)}
               />
               <div
-                className="absolute right-0 top-10 z-50 w-52 rounded-xl border shadow-lg py-1"
+                className="absolute right-0 top-10 z-50 w-56 rounded-xl border shadow-lg py-1"
                 style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
               >
-                <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
-                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-1)' }}>
-                    {user?.full_name}
-                  </p>
+                <div className="px-3 py-2 border-b space-y-1" style={{ borderColor: 'var(--border)' }}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-1)' }}>
+                      {user?.full_name}
+                    </p>
+                    <span className={cn('px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase', roleConfig.color)}>
+                      {roleConfig.label}
+                    </span>
+                  </div>
                   <p className="text-xs truncate" style={{ color: 'var(--text-3)' }}>
                     {user?.email}
                   </p>
+                  {user?.organization_name && (
+                    <p className="text-[11px] font-medium text-blue-500 truncate">
+                      Org: {user.organization_name}
+                    </p>
+                  )}
                 </div>
+
                 <Link
                   href="/settings"
                   className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--border)] transition-colors"

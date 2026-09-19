@@ -185,21 +185,32 @@ class ScoringEngine:
         if isinstance(profile.capabilities, str):
             caps = [c.strip() for c in profile.capabilities.split(',') if c.strip()]
 
-        if not caps:
+        techs = profile.tech_stack if isinstance(profile.tech_stack, list) else []
+        if isinstance(profile.tech_stack, str):
+            techs = [t.strip() for t in profile.tech_stack.split(',') if t.strip()]
+
+        prods = []
+        if isinstance(profile.products_services, list):
+            for p in profile.products_services:
+                if isinstance(p, dict) and p.get('name'):
+                    prods.append(p['name'])
+
+        all_competencies = caps + techs + prods
+        if not all_competencies:
             return 70.0, 'No explicit capabilities listed in Business DNA.'
 
-        opp_corpus = f"{opp.title} {opp.description} {str(opp.requirements or '')}".lower()
-        matched_caps = []
-        for cap in caps:
-            if cap.lower() in opp_corpus:
-                matched_caps.append(cap)
+        opp_corpus = f"{opp.title} {opp.description} {str(opp.requirements or '')} {str(opp.technology_tags or '')}".lower()
+        matched = []
+        for item in all_competencies:
+            if str(item).lower() in opp_corpus:
+                matched.append(str(item))
 
-        if matched_caps:
-            ratio = len(matched_caps) / max(1, len(caps))
-            score = 70.0 + (ratio * 28.0)
-            return min(98.0, score), f"Matched capabilities: {', '.join(matched_caps[:4])}."
+        if matched:
+            ratio = len(matched) / max(1, min(len(all_competencies), 6))
+            score = 72.0 + min(26.0, ratio * 26.0)
+            return min(98.0, round(score, 1)), f"Matched competencies: {', '.join(matched[:4])}."
         
-        return 72.0, 'Capabilities evaluated against general scope.'
+        return 72.0, 'Competencies evaluated against general scope.'
 
     def _calculate_geographic_fit(self, profile: BusinessProfile, opp: Opportunity) -> Tuple[float, str]:
         p_country = (profile.country or 'India').lower()
@@ -268,9 +279,21 @@ class ScoringEngine:
 
     def _calculate_execution_fit(self, profile: BusinessProfile, opp: Opportunity) -> Tuple[float, str]:
         size = profile.company_size or '11-50'
+        past_projects = profile.previous_projects if isinstance(profile.previous_projects, list) else []
+        score = 85.0
+        notes = []
+
+        if past_projects:
+            score += min(10.0, len(past_projects) * 3.0)
+            notes.append(f"Verified track record across {len(past_projects)} past project(s)")
+
         if size in ['51-200', '201-500', '500+']:
-            return 95.0, 'Enterprise team scale readily satisfies delivery resource requirements.'
-        return 88.0, 'Agile small team suited for rapid execution & delivery.'
+            score += 5.0
+            notes.append('Enterprise delivery capacity')
+        else:
+            notes.append('Agile delivery team')
+
+        return min(98.0, round(score, 1)), '; '.join(notes)
 
     def _derive_recommendation(
         self, overall: float, elig: float, cap: float, time_score: float, opp: Opportunity
@@ -289,5 +312,113 @@ class ScoringEngine:
             return 'watch', f"Low fit ({overall}%). Bookmark to track future revisions or related tenders."
         return 'skip', f"Low alignment ({overall}%) with your current Business DNA profile."
 
+    def explain(self, profile, opp: Opportunity, score: 'OpportunityScore') -> Dict[str, Any]:
+        """
+        Why/Why Not Engine: returns a human-readable, structured explanation
+        of each scoring dimension, top strengths, top gaps, and a narrative summary.
+        """
+        dimensions = [
+            {
+                'dimension': 'Eligibility',
+                'key': 'eligibility_score',
+                'score': score.eligibility_score,
+                'weight': self.WEIGHTS['eligibility'],
+                'description': 'Mandatory certification and regulatory qualification match.',
+                'notes': score.score_metadata.get('eligibility_notes', '') if score.score_metadata else '',
+                'icon': 'shield',
+            },
+            {
+                'dimension': 'Business Fit',
+                'key': 'business_fit_score',
+                'score': score.business_fit_score,
+                'weight': self.WEIGHTS['business_fit'],
+                'description': 'Industry, sector, and domain alignment.',
+                'notes': score.score_metadata.get('business_fit_notes', '') if score.score_metadata else '',
+                'icon': 'briefcase',
+            },
+            {
+                'dimension': 'Capability Fit',
+                'key': 'capability_fit_score',
+                'score': score.capability_fit_score,
+                'weight': self.WEIGHTS['capability_fit'],
+                'description': 'Technical competency and keyword overlap with requirements.',
+                'notes': score.score_metadata.get('capability_notes', '') if score.score_metadata else '',
+                'icon': 'zap',
+            },
+            {
+                'dimension': 'Geographic Fit',
+                'key': 'geographic_fit_score',
+                'score': score.geographic_fit_score,
+                'weight': self.WEIGHTS['geographic_fit'],
+                'description': 'Location match and cross-border eligibility.',
+                'notes': score.score_metadata.get('geographic_notes', '') if score.score_metadata else '',
+                'icon': 'map-pin',
+            },
+            {
+                'dimension': 'Value Fit',
+                'key': 'value_fit_score',
+                'score': score.value_fit_score,
+                'weight': self.WEIGHTS['value_fit'],
+                'description': 'Contract value vs your preferred deal size range.',
+                'notes': score.score_metadata.get('value_notes', '') if score.score_metadata else '',
+                'icon': 'dollar-sign',
+            },
+            {
+                'dimension': 'Time Feasibility',
+                'key': 'time_feasibility_score',
+                'score': score.time_feasibility_score,
+                'weight': self.WEIGHTS['time_feasibility'],
+                'description': 'Days to deadline vs typical proposal preparation time.',
+                'notes': score.score_metadata.get('time_notes', '') if score.score_metadata else '',
+                'icon': 'clock',
+            },
+            {
+                'dimension': 'Competition',
+                'key': 'competition_score',
+                'score': score.competition_score,
+                'weight': self.WEIGHTS['competition'],
+                'description': 'Estimated competitive density in this category.',
+                'notes': score.score_metadata.get('competition_notes', '') if score.score_metadata else '',
+                'icon': 'users',
+            },
+            {
+                'dimension': 'Execution Fit',
+                'key': 'execution_fit_score',
+                'score': score.execution_fit_score,
+                'weight': self.WEIGHTS['execution_fit'],
+                'description': 'Team size and track record readiness.',
+                'notes': score.score_metadata.get('execution_notes', '') if score.score_metadata else '',
+                'icon': 'award',
+            },
+        ]
+
+        # Top 3 strengths: highest-scoring weighted dimensions
+        strengths = sorted(
+            [d for d in dimensions if (d['score'] or 0) >= 80],
+            key=lambda d: (d['score'] or 0) * d['weight'],
+            reverse=True
+        )[:3]
+
+        # Top 3 gaps: lowest-scoring weighted dimensions
+        gaps = sorted(
+            [d for d in dimensions if (d['score'] or 0) < 75],
+            key=lambda d: (d['score'] or 0) * d['weight']
+        )[:3]
+
+        return {
+            'overall_score': score.overall_score,
+            'recommendation': score.recommendation,
+            'recommendation_reason': score.recommendation_reason,
+            'dimensions': dimensions,
+            'strengths': [{'dimension': d['dimension'], 'score': d['score'], 'notes': d['notes']} for d in strengths],
+            'gaps': [{'dimension': d['dimension'], 'score': d['score'], 'notes': d['notes']} for d in gaps],
+            'narrative': (
+                f"This opportunity scores {score.overall_score}/100 against your Business DNA. "
+                + (f"Key strengths: {', '.join(s['dimension'] for s in strengths)}. " if strengths else "")
+                + (f"Areas to improve: {', '.join(g['dimension'] for g in gaps)}." if gaps else "")
+            ),
+        }
+
 
 scoring_engine = ScoringEngine()
+

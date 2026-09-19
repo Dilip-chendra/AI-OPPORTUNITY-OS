@@ -12,8 +12,10 @@ import uuid
 
 router = APIRouter()
 
+@router.get('', response_model=PaginatedResponse[NotificationResponse])
 @router.get('/', response_model=PaginatedResponse[NotificationResponse])
 async def get_alerts(
+
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),

@@ -1,394 +1,352 @@
 'use client'
 import { useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { applicationsApi, ComplianceClause } from '@/lib/api/applications'
+import { useParams, useRouter } from 'next/navigation'
+import { applicationsApi } from '@/lib/api/applications'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { ErrorState } from '@/components/ui/error-state'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
-  FolderOpen, ArrowLeft, Sparkles, CheckCircle2, AlertTriangle, FileText,
-  Clock, Shield, Send, Copy, Check, Download, Layers, MessageSquare, Bot
+  ArrowLeft, Clock, CheckSquare, FileText, ShieldCheck,
+  Calendar, RefreshCw, CheckCircle2, Circle, ChevronRight,
+  Zap, Award, Target
 } from 'lucide-react'
-import Link from 'next/link'
+import { api } from '@/lib/api/client'
 
-export default function PursuitStudioPage() {
-  const params = useParams()
+const TABS = [
+  { key: 'overview', label: 'Overview', icon: <Target className="h-3.5 w-3.5" /> },
+  { key: 'compliance', label: 'Compliance', icon: <ShieldCheck className="h-3.5 w-3.5" /> },
+  { key: 'shredder', label: 'Req. Shredder', icon: <Zap className="h-3.5 w-3.5" /> },
+  { key: 'deadline', label: 'Deadline Plan', icon: <Calendar className="h-3.5 w-3.5" /> },
+  { key: 'checklist', label: 'Checklist', icon: <CheckSquare className="h-3.5 w-3.5" /> },
+  { key: 'proposal', label: 'AI Proposal', icon: <FileText className="h-3.5 w-3.5" /> },
+]
+
+const STATUS_OPTIONS = ['draft', 'in_progress', 'review', 'submitted', 'won', 'lost', 'withdrawn']
+const STATUS_COLORS: Record<string, string> = {
+  draft: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30',
+  in_progress: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  review: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  submitted: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+  won: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  lost: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+  withdrawn: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30',
+}
+
+export default function WorkspaceDetailPage() {
+  const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const qc = useQueryClient()
-  const id = params.id as string
+  const [activeTab, setActiveTab] = useState('overview')
+  const [rfpText, setRfpText] = useState('')
+  const [proposalSection, setProposalSection] = useState('executive_summary')
+  const [proposalContent, setProposalContent] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
 
-  const [activeSection, setActiveSection] = useState<'executive_summary' | 'technical_approach' | 'pricing_strategy' | 'team_qualifications'>('executive_summary')
-  const [copied, setCopied] = useState(false)
-  const [chatInput, setChatInput] = useState('')
-  const [chatLog, setChatLog] = useState<{ role: 'user' | 'ai'; text: string }[]>([
-    { role: 'ai', text: 'Pursuit Copilot active. I can help optimize your response clauses, address compliance gaps, or format technical tables.' }
-  ])
-
-  // 1. Fetch Application Detail
-  const { data: app, isLoading: appLoading, isError: appError, refetch: appRefetch } = useQuery({
+  const { data: app, isLoading } = useQuery({
     queryKey: ['application', id],
     queryFn: () => applicationsApi.get(id),
-    enabled: !!id,
   })
 
-  // 2. Fetch Compliance Matrix
-  const { data: matrix, isLoading: matrixLoading } = useQuery({
-    queryKey: ['compliance-matrix', id],
+  const { data: complianceData, refetch: refetchCompliance } = useQuery({
+    queryKey: ['compliance', id],
     queryFn: () => applicationsApi.getComplianceMatrix(id),
-    enabled: !!id,
+    enabled: activeTab === 'compliance',
   })
 
-  // 3. Draft Proposal Mutation
-  const proposalMutation = useMutation({
-    mutationFn: (sec: string) => applicationsApi.draftProposal(id, sec),
+  const { data: deadlineData, isLoading: deadlineLoading } = useQuery({
+    queryKey: ['deadline-plan', id],
+    queryFn: () => api.get(`/applications/${id}/deadline-plan`).then((r: any) => r.data),
+    enabled: activeTab === 'deadline',
   })
 
-  // 4. Update Status Mutation
+  const { data: checklistData, isLoading: checklistLoading } = useQuery({
+    queryKey: ['checklist', id],
+    queryFn: () => api.get(`/applications/${id}/checklist`).then((r: any) => r.data),
+    enabled: activeTab === 'checklist',
+  })
+
+  const extractMutation = useMutation({
+    mutationFn: () => api.post('/shredder/extract', {
+      opportunity_id: (app as any)?.opportunity_id,
+      text: rfpText || undefined,
+    }).then((r: any) => r.data),
+  })
+
   const statusMutation = useMutation({
-    mutationFn: (newStatus: string) => applicationsApi.updateStatus(id, newStatus),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['application', id] })
-      qc.invalidateQueries({ queryKey: ['applications'] })
-    }
+    mutationFn: (status: string) => applicationsApi.updateStatus(id, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['application', id] }),
   })
 
-  const handleGenerateDraft = (sec: any) => {
-    setActiveSection(sec)
-    proposalMutation.mutate(sec)
-  }
+  const toggleChecklistMutation = useMutation({
+    mutationFn: ({ index, done }: { index: number; done: boolean }) =>
+      api.patch(`/applications/${id}/checklist/${index}`, { done }).then((r: any) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['checklist', id] }),
+  })
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2500)
-  }
+  const regeneratePlanMutation = useMutation({
+    mutationFn: () => api.post(`/applications/${id}/deadline-plan/regenerate`).then((r: any) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['deadline-plan', id] }),
+  })
 
-  const [chatLoading, setChatLoading] = useState(false)
-
-  const handleChatSend = async () => {
-    if (!chatInput.trim() || chatLoading) return
-    const userText = chatInput
-    setChatLog((prev) => [...prev, { role: 'user', text: userText }])
-    setChatInput('')
-    setChatLoading(true)
-
+  const draftProposal = async () => {
+    setAiLoading(true)
     try {
-      const res = await import('@/lib/api/ai').then(m => m.aiApi.chat(`[Context Tender: ${app?.title || 'Current Pursuit'}] ${userText}`))
-      setChatLog((prev) => [
-        ...prev,
-        {
-          role: 'ai',
-          text: res.response
-        }
-      ])
+      const res = await api.post(`/applications/${id}/draft-proposal`, { section_type: proposalSection })
+      setProposalContent((res.data as any).content)
     } catch {
-      setChatLog((prev) => [
-        ...prev,
-        {
-          role: 'ai',
-          text: `Based on the RFP specifications for "${app?.title || 'this tender'}", align your technical narrative directly to the 14-week delivery milestone and ensure all ISO certifications are cited.`
-        }
-      ])
+      setProposalContent('Could not generate proposal. Please ensure your Business DNA profile is complete.')
     } finally {
-      setChatLoading(false)
+      setAiLoading(false)
     }
   }
 
-  if (appLoading) {
-    return (
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
-        <div className="skeleton h-4 w-48 rounded" />
-        <div className="skeleton h-28 w-full rounded-2xl" />
-        <div className="skeleton h-96 w-full rounded-2xl" />
-      </div>
-    )
-  }
+  if (isLoading) return (
+    <div className="p-6 max-w-6xl mx-auto space-y-4">
+      <div className="skeleton h-10 w-48 rounded-xl" />
+      <div className="skeleton h-96 w-full rounded-2xl" />
+    </div>
+  )
 
-  if (appError || !app) {
-    return <div className="p-6"><ErrorState onRetry={appRefetch} /></div>
-  }
+  if (!app) return (
+    <div className="p-6">
+      <EmptyState title="Application not found" description="This workspace doesn't exist or you don't have access." />
+    </div>
+  )
 
-  const stages = [
-    { value: 'draft', label: 'Drafting' },
-    { value: 'in_progress', label: 'Compliance & Technical' },
-    { value: 'review', label: 'Internal Review' },
-    { value: 'submitted', label: 'Submitted' },
-    { value: 'won', label: 'Won Contract' },
-    { value: 'lost', label: 'Lost' },
-  ]
+  const opp = (app as any).opportunity
+  const checklist: any[] = checklistData?.checklist || []
+  const plan: any[] = deadlineData?.plan || []
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      {/* Breadcrumb Navigation */}
-      <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-3)]">
-        <Link href="/workspace" className="hover:text-blue-500 flex items-center gap-1">
-          <ArrowLeft className="h-3 w-3" /> Pursuit Workspaces
-        </Link>
-        <span>/</span>
-        <span className="truncate max-w-md text-[var(--text-2)]">{app.title}</span>
-      </div>
-
-      {/* Hero Workspace Header */}
-      <div className="p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header */}
+      <div>
+        <button onClick={() => router.back()} className="flex items-center gap-1.5 text-sm mb-3 text-[var(--text-3)]">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <Badge variant={app.status === 'won' ? 'success' : app.status === 'submitted' ? 'default' : 'outline'}>
-                {app.status.replace('_', ' ').toUpperCase()}
-              </Badge>
-              {app.opportunity?.category && (
-                <Badge variant={app.opportunity.category as any}>{app.opportunity.category}</Badge>
-              )}
-              {app.opportunity?.is_demo && <Badge variant="demo">🧪 Demo Pursuit</Badge>}
-            </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-[var(--text-1)]">{app.title}</h1>
-            <p className="text-xs text-[var(--text-2)] mt-1 flex items-center gap-2">
-              <span className="font-semibold text-[var(--text-1)]">{app.opportunity?.organization_name || 'Issuing Authority'}</span>
-              <span>•</span>
-              <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> Closing in 18 days</span>
-            </p>
+            <h1 className="text-xl font-bold text-[var(--text-1)]">{(app as any).title}</h1>
+            {opp && <p className="text-sm text-[var(--text-2)]">{opp.organization_name}</p>}
           </div>
-
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 flex-wrap">
             <select
-              value={app.status}
-              onChange={(e) => statusMutation.mutate(e.target.value)}
-              className="h-9 px-3 text-xs font-medium rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[var(--text-1)] focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              value={(app as any).status}
+              onChange={e => statusMutation.mutate(e.target.value)}
+              className={`px-3 py-1.5 rounded-lg border text-xs font-medium ${STATUS_COLORS[(app as any).status] || ''}`}
             >
-              {stages.map((st) => (
-                <option key={st.value} value={st.value}>
-                  Stage: {st.label}
-                </option>
-              ))}
+              {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
             </select>
-            {app.opportunity?.id && (
-              <Button variant="outline" size="sm" onClick={() => router.push(`/radar/${app.opportunity.id}`)}>
-                View Notice
-              </Button>
+            {(app as any).deadline && (
+              <div className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-2)]">
+                <Clock className="h-3.5 w-3.5" />
+                {new Date((app as any).deadline).toLocaleDateString()}
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Main Studio Tabs */}
-      <Tabs defaultValue="matrix">
-        <TabsList className="mb-6">
-          <TabsTrigger value="matrix">Compliance Matrix</TabsTrigger>
-          <TabsTrigger value="proposal">AI Proposal Studio</TabsTrigger>
-          <TabsTrigger value="documents">Document Checklist</TabsTrigger>
-          <TabsTrigger value="copilot">AI Bid Copilot</TabsTrigger>
-        </TabsList>
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-x-auto">
+        {TABS.map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+              activeTab === tab.key ? 'bg-blue-600 text-white' : 'text-[var(--text-2)] hover:text-[var(--text-1)]'
+            }`}>
+            {tab.icon}{tab.label}
+          </button>
+        ))}
+      </div>
 
-        {/* Tab 1: Compliance Matrix */}
-        <TabsContent value="matrix">
-          <div className="p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
-              <div>
-                <h3 className="font-bold text-base text-[var(--text-1)]">Mandatory RFP Compliance Matrix</h3>
-                <p className="text-xs text-[var(--text-2)]">Clause-by-clause mapping of specifications against your Business DNA profile.</p>
+      {/* Overview */}
+      {activeTab === 'overview' && (
+        <div className="space-y-4">
+          {opp && (
+            <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] space-y-3">
+              <h3 className="font-bold text-sm text-[var(--text-1)]">Opportunity</h3>
+              <p className="text-sm text-[var(--text-2)]">{opp.description?.slice(0, 600)}{opp.description?.length > 600 ? '...' : ''}</p>
+              <div className="flex flex-wrap gap-2">
+                {opp.category && <Badge variant="outline">{opp.category}</Badge>}
+                {opp.geography_country && <Badge variant="outline">{opp.geography_country}</Badge>}
+                {opp.value_display && <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">{opp.value_display}</Badge>}
               </div>
-              <Badge variant="success">96% Overall Compliance</Badge>
+              {opp.source_url && (
+                <a href={opp.source_url} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-blue-400 hover:underline flex items-center gap-1">
+                  View Source <ChevronRight className="h-3 w-3" />
+                </a>
+              )}
             </div>
-
-            {matrixLoading ? (
-              <div className="space-y-3 py-4">
-                {[...Array(4)].map((_, i) => <div key={i} className="skeleton h-16 rounded-xl" />)}
+          )}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: 'Status', val: (app as any).status?.replace('_', ' ') || '—' },
+              { label: 'Outcome', val: (app as any).outcome || 'Pending' },
+              { label: 'Deadline', val: (app as any).deadline ? new Date((app as any).deadline).toLocaleDateString() : '—' },
+              { label: 'Started', val: (app as any).created_at ? new Date((app as any).created_at).toLocaleDateString() : '—' },
+            ].map(({ label, val }) => (
+              <div key={label} className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+                <p className="text-xs text-[var(--text-3)] mb-1">{label}</p>
+                <p className="font-bold text-sm text-[var(--text-1)] capitalize">{val}</p>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-[var(--border)] text-[var(--text-3)] font-mono uppercase">
-                      <th className="pb-3 w-20">Clause</th>
-                      <th className="pb-3">Requirement Text</th>
-                      <th className="pb-3 w-36">Status</th>
-                      <th className="pb-3 w-24">Confidence</th>
-                      <th className="pb-3">Evidence Document</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--border)]">
-                    {(matrix || []).map((row: ComplianceClause) => (
-                      <tr key={row.clause_id} className="hover:bg-[var(--bg)] transition-colors">
-                        <td className="py-3.5 font-mono font-bold text-blue-500">{row.clause_id}</td>
-                        <td className="py-3.5 pr-4">
-                          <p className="font-medium text-[var(--text-1)]">{row.requirement_text}</p>
-                          <p className="text-[11px] text-[var(--text-3)] mt-0.5">{row.gap_analysis}</p>
-                        </td>
-                        <td className="py-3.5">
-                          <span className="inline-flex items-center gap-1 font-bold text-[11px] text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
-                            <CheckCircle2 className="h-3 w-3" /> {row.compliance_status}
-                          </span>
-                        </td>
-                        <td className="py-3.5 font-mono font-bold text-[var(--text-1)]">{row.confidence_score}%</td>
-                        <td className="py-3.5 text-[var(--text-2)] font-mono text-[11px]">{row.evidence_document}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            ))}
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        {/* Tab 2: AI Proposal Studio */}
-        <TabsContent value="proposal">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Section Picker */}
-            <div className="p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] space-y-2 lg:col-span-1">
-              <span className="text-xs font-mono font-bold uppercase text-[var(--text-3)] block mb-2">Proposal Sections</span>
+      {/* Compliance */}
+      {activeTab === 'compliance' && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-sm text-[var(--text-1)]">Compliance Matrix</h3>
+            <Button size="sm" variant="outline" onClick={() => refetchCompliance()}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />Refresh
+            </Button>
+          </div>
+          {!complianceData
+            ? <div className="skeleton h-48 rounded-xl" />
+            : (complianceData.matrix || []).length === 0
+              ? <EmptyState title="No requirements found" description="Check the opportunity has detailed requirements, or use the Requirement Shredder to extract them." />
+              : (complianceData.matrix || []).map((item: any, i: number) => (
+                <div key={i} className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm text-[var(--text-1)] flex-1">{item.requirement}</p>
+                    <Badge className={`text-[10px] shrink-0 ${
+                      item.compliance_level === 'compliant' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                      item.compliance_level === 'gap' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' :
+                      'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                    }`}>{item.compliance_level || 'pending'}</Badge>
+                  </div>
+                  {item.action_needed && <p className="text-xs mt-2 text-[var(--text-3)]">→ {item.action_needed}</p>}
+                </div>
+              ))
+          }
+        </div>
+      )}
+
+      {/* Requirement Shredder */}
+      {activeTab === 'shredder' && (
+        <div className="space-y-4">
+          <h3 className="font-bold text-sm text-[var(--text-1)]">Requirement Shredder</h3>
+          <p className="text-xs text-[var(--text-2)]">Paste raw RFP text to extract structured requirements, or leave blank to auto-extract from the opportunity.</p>
+          <textarea
+            rows={5} value={rfpText} onChange={e => setRfpText(e.target.value)}
+            placeholder="Paste full RFP text here..."
+            className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-sm text-[var(--text-1)] resize-y"
+          />
+          <Button onClick={() => extractMutation.mutate()} disabled={extractMutation.isPending}>
+            <Zap className="h-4 w-4 mr-2" />{extractMutation.isPending ? 'Extracting...' : 'Shred Requirements'}
+          </Button>
+          {extractMutation.data?.requirements?.map((req: any) => (
+            <div key={req.id} className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-mono text-blue-400">{req.id}</span>
+                <Badge variant="outline" className="text-[10px] capitalize">{req.category}</Badge>
+                {req.mandatory && <Badge className="text-[10px] bg-rose-500/20 text-rose-400 border-rose-500/30">Mandatory</Badge>}
+              </div>
+              <p className="text-sm text-[var(--text-1)]">{req.requirement_text}</p>
+              {req.evidence_needed && <p className="text-xs mt-1 text-amber-400">Evidence: {req.evidence_needed}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Deadline Plan */}
+      {activeTab === 'deadline' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-sm text-[var(--text-1)]">Deadline Autopilot</h3>
+            <Button size="sm" variant="outline" onClick={() => regeneratePlanMutation.mutate()} disabled={regeneratePlanMutation.isPending}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />Regenerate
+            </Button>
+          </div>
+          {deadlineLoading
+            ? <div className="space-y-2">{[...Array(6)].map((_, i) => <div key={i} className="skeleton h-14 rounded-xl" />)}</div>
+            : plan.length === 0
+              ? <EmptyState title="No plan yet" description="Click Regenerate to auto-generate your pursuit execution timeline." />
+              : (
+                <div className="relative">
+                  <div className="absolute left-4 top-0 bottom-0 w-px bg-[var(--border)]" />
+                  <div className="space-y-3 pl-10">
+                    {plan.map((item: any, i: number) => {
+                      const overdue = item.status === 'overdue'
+                      return (
+                        <div key={i} className={`relative p-4 rounded-xl border ${overdue ? 'border-rose-500/30 bg-rose-500/5' : 'border-[var(--border)] bg-[var(--surface)]'}`}>
+                          <div className={`absolute -left-[30px] top-4 h-3 w-3 rounded-full border-2 ${overdue ? 'border-rose-400 bg-rose-400' : 'border-blue-400 bg-[var(--bg)]'}`} />
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-semibold text-sm text-[var(--text-1)]">{item.milestone}</p>
+                              <p className="text-xs text-[var(--text-2)] mt-0.5">{item.description}</p>
+                            </div>
+                            <p className="text-xs font-mono text-[var(--text-3)] shrink-0">{item.due_date}</p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+          }
+        </div>
+      )}
+
+      {/* Checklist */}
+      {activeTab === 'checklist' && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-sm text-[var(--text-1)]">Submission Checklist</h3>
+            <span className="text-xs text-[var(--text-3)]">{checklist.filter((c: any) => c.done).length}/{checklist.length} done</span>
+          </div>
+          {checklistLoading
+            ? <div className="space-y-2">{[...Array(6)].map((_, i) => <div key={i} className="skeleton h-12 rounded-xl" />)}</div>
+            : checklist.map((item: any, i: number) => (
+              <button key={i} onClick={() => toggleChecklistMutation.mutate({ index: i, done: !item.done })}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-colors ${
+                  item.done ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-[var(--border)] bg-[var(--surface)] hover:border-blue-500/40'
+                }`}>
+                {item.done
+                  ? <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                  : <Circle className="h-4 w-4 text-[var(--text-3)] shrink-0" />}
+                <span className={`text-sm ${item.done ? 'line-through text-[var(--text-3)]' : 'text-[var(--text-1)]'}`}>{item.task}</span>
+              </button>
+            ))
+          }
+        </div>
+      )}
+
+      {/* AI Proposal */}
+      {activeTab === 'proposal' && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <select value={proposalSection} onChange={e => setProposalSection(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-sm text-[var(--text-1)]">
               {[
-                { id: 'executive_summary', label: '1. Executive Summary', icon: <FileText className="h-4 w-4" /> },
-                { id: 'technical_approach', label: '2. Technical Architecture', icon: <Layers className="h-4 w-4" /> },
-                { id: 'pricing_strategy', label: '3. Commercial & Milestones', icon: <Shield className="h-4 w-4" /> },
-                { id: 'team_qualifications', label: '4. Team Qualifications', icon: <CheckCircle2 className="h-4 w-4" /> },
-              ].map((sec) => (
-                <button
-                  key={sec.id}
-                  onClick={() => handleGenerateDraft(sec.id)}
-                  className={`w-full text-left p-3 rounded-xl text-xs font-medium flex items-center justify-between transition-all cursor-pointer ${
-                    activeSection === sec.id
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'hover:bg-[var(--border)] text-[var(--text-2)]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    {sec.icon}
-                    <span>{sec.label}</span>
-                  </div>
-                  <Sparkles className="h-3.5 w-3.5 opacity-70" />
-                </button>
-              ))}
-            </div>
-
-            {/* Editor / Draft Output */}
-            <div className="p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] lg:col-span-3 flex flex-col justify-between min-h-[420px]">
-              <div>
-                <div className="flex items-center justify-between pb-4 mb-4 border-b border-[var(--border)]">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-violet-500" />
-                    <h3 className="font-bold text-sm sm:text-base text-[var(--text-1)]">
-                      AI Generated Draft: {activeSection.replace('_', ' ').toUpperCase()}
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      leftIcon={copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
-                      onClick={() => handleCopy(proposalMutation.data || '')}
-                      disabled={!proposalMutation.data}
-                    >
-                      {copied ? 'Copied' : 'Copy'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleGenerateDraft(activeSection)}
-                      loading={proposalMutation.isPending}
-                    >
-                      Regenerate
-                    </Button>
-                  </div>
-                </div>
-
-                {proposalMutation.isPending ? (
-                  <div className="space-y-3 py-6">
-                    <div className="skeleton h-4 w-3/4 rounded" />
-                    <div className="skeleton h-4 w-full rounded" />
-                    <div className="skeleton h-4 w-5/6 rounded" />
-                    <div className="skeleton h-24 w-full rounded-xl" />
-                  </div>
-                ) : proposalMutation.data ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none text-xs sm:text-sm whitespace-pre-line leading-relaxed text-[var(--text-1)]">
-                    {proposalMutation.data}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-16 text-center text-[var(--text-3)]">
-                    <FileText className="h-10 w-10 mb-3 text-blue-500/50" />
-                    <p className="text-sm font-medium text-[var(--text-1)]">Select a section to generate an AI proposal draft</p>
-                    <p className="text-xs text-[var(--text-2)] mt-1">Generates tailored RFP response clauses calibrated to your credentials.</p>
-                    <Button size="sm" className="mt-4" onClick={() => handleGenerateDraft('executive_summary')}>
-                      Generate Executive Summary
-                    </Button>
-                  </div>
-                )}
+                ['executive_summary', 'Executive Summary'],
+                ['technical_approach', 'Technical Approach'],
+                ['team_profile', 'Team Profile'],
+                ['commercial', 'Commercial Proposal'],
+                ['compliance_statement', 'Compliance Statement'],
+              ].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+            <Button onClick={draftProposal} disabled={aiLoading} leftIcon={<Award className="h-4 w-4" />}>
+              {aiLoading ? 'Drafting...' : 'Draft Section'}
+            </Button>
+          </div>
+          {proposalContent ? (
+            <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-sm text-[var(--text-1)] capitalize">{proposalSection.replace(/_/g, ' ')}</h3>
+                <Button size="sm" variant="ghost" onClick={() => navigator.clipboard.writeText(proposalContent)}>Copy</Button>
               </div>
+              <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed text-[var(--text-2)]">{proposalContent}</pre>
             </div>
-          </div>
-        </TabsContent>
-
-        {/* Tab 3: Document Checklist */}
-        <TabsContent value="documents">
-          <div className="p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] space-y-4">
-            <h3 className="font-bold text-base text-[var(--text-1)]">Required Submission Documents</h3>
-            <div className="space-y-3">
-              {[
-                { name: 'Company Certificate of Incorporation', status: 'Uploaded & Verified', mandatory: true },
-                { name: 'GST / Tax Clearance Certificate (FY 25-26)', status: 'Uploaded & Verified', mandatory: true },
-                { name: 'Technical Solution Architecture & WBS Schedule', status: 'Draft Ready in Studio', mandatory: true },
-                { name: 'Audited Balance Sheet (Last 3 FYs)', status: 'Uploaded & Verified', mandatory: true },
-                { name: 'Key Personnel CVs & Staffing Matrix', status: 'Pending Review', mandatory: true },
-                { name: 'Earnest Money Deposit (EMD) Declaration', status: 'MSME Exemption Applied', mandatory: false },
-              ].map((doc, i) => (
-                <div key={i} className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg)] flex items-center justify-between text-xs sm:text-sm">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-blue-500 shrink-0" />
-                    <div>
-                      <p className="font-medium text-[var(--text-1)]">{doc.name}</p>
-                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">{doc.status}</span>
-                    </div>
-                  </div>
-                  <Badge variant={doc.mandatory ? 'default' : 'outline'} size="sm">
-                    {doc.mandatory ? 'Mandatory' : 'Optional'}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Tab 4: AI Bid Copilot */}
-        <TabsContent value="copilot">
-          <div className="p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] flex flex-col h-[480px]">
-            <div className="flex items-center gap-2 pb-3 mb-4 border-b border-[var(--border)]">
-              <Bot className="h-5 w-5 text-violet-500" />
-              <div>
-                <h3 className="font-bold text-sm text-[var(--text-1)]">Pursuit Bid Copilot</h3>
-                <p className="text-[11px] text-[var(--text-3)]">Contextually bound to this specific tender requirements</p>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2 mb-4">
-              {chatLog.map((msg, i) => (
-                <div key={i} className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`p-3 rounded-xl text-xs sm:text-sm max-w-xl ${
-                    msg.role === 'user'
-                      ? 'bg-blue-600 text-white rounded-br-none'
-                      : 'border border-[var(--border)] bg-[var(--bg)] text-[var(--text-1)] rounded-bl-none'
-                  }`}>
-                    {msg.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleChatSend()}
-                placeholder="Ask how to improve this bid, address clauses, or optimize margin..."
-                className="flex-1 h-10 px-4 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-xs sm:text-sm text-[var(--text-1)] focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-              />
-              <Button size="md" onClick={handleChatSend} rightIcon={<Send className="h-3.5 w-3.5" />}>
-                Send
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+          ) : (
+            <EmptyState title="No draft yet" description="Select a section and click Draft Section to generate AI-assisted content based on your Business DNA." />
+          )}
+        </div>
+      )}
     </div>
   )
 }

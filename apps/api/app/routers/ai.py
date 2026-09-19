@@ -25,11 +25,22 @@ async def chat(
     prof_result = await db.execute(select(BusinessProfile).where(BusinessProfile.organization_id == org.id))
     profile = prof_result.scalar_one_or_none()
     
+    caps = []
+    if profile and profile.capabilities:
+        caps = profile.capabilities if isinstance(profile.capabilities, list) else [c.strip() for c in str(profile.capabilities).split(',')]
+
+    certs = []
+    if profile and profile.certifications:
+        certs = profile.certifications if isinstance(profile.certifications, list) else [c.strip() for c in str(profile.certifications).split(',')]
+
     context = {
         'org_name': org.name,
-        'industry': profile.industry if profile else 'Unknown',
-        'location': profile.country if profile else 'Unknown',
-        'capabilities': []  # Future enhancement
+        'industry': profile.industry if profile else 'Technology & Software',
+        'location': f"{profile.city or ''}, {profile.state or ''}, {profile.country or 'India'}" if profile else 'Unknown',
+        'company_size': profile.company_size if profile else '11-50',
+        'capabilities': caps,
+        'certifications': certs,
+        'preferred_contract_range': f"{profile.preferred_currency or 'INR'} {profile.preferred_contract_min or 0} - {profile.preferred_contract_max or 0}" if profile else 'Open'
     }
     
     response = await ai_service.chat(data.message, [], context)

@@ -1,8 +1,9 @@
-'use client'
+﻿'use client'
 import { useQuery } from '@tanstack/react-query'
 import { analyticsApi } from '@/lib/api/analytics'
+import { opportunitiesApi } from '@/lib/api/opportunities'
 import { MetricCard } from '@/components/ui/metric-card'
-import { BarChart3, TrendingUp, Target, Trophy, FileText, Percent, ShieldCheck } from 'lucide-react'
+import { BarChart3, TrendingUp, Target, Trophy, FileText, Percent } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 export default function AnalyticsPage() {
@@ -10,6 +11,16 @@ export default function AnalyticsPage() {
     queryKey: ['analytics-full'],
     queryFn: analyticsApi.overview,
   })
+  const { data: stats } = useQuery({
+    queryKey: ['opportunity-stats'],
+    queryFn: opportunitiesApi.stats,
+  })
+
+  const total = stats?.total || 0
+  const byCategory = stats?.by_category || {}
+  const catEntries = Object.entries(byCategory)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 7)
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
@@ -33,36 +44,54 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Real pipeline distribution from live DB */}
         <div className="p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
           <h3 className="text-base font-bold mb-4 text-[var(--text-1)]">Pipeline Distribution by Channel</h3>
-          <div className="space-y-3 text-xs">
-            {[
-              { label: 'Government & Public Tenders', pct: '48%' },
-              { label: 'Corporate RFPs', pct: '26%' },
-              { label: 'Innovation Grants & Schemes', pct: '16%' },
-              { label: 'Global & Multilateral', pct: '10%' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
-                <span className="text-[var(--text-1)] font-medium">{item.label}</span>
-                <span className="font-mono font-bold text-blue-500">{item.pct}</span>
-              </div>
-            ))}
+          <div className="space-y-2 text-xs">
+            {catEntries.length === 0 && (
+              <p className="text-[var(--text-3)] italic">No data yet — opportunities loading...</p>
+            )}
+            {catEntries.map(([cat, count]) => {
+              const pct = total > 0 ? Math.round((count / total) * 100) : 0
+              return (
+                <div key={cat}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[var(--text-1)] font-medium capitalize">{cat.replace('_', ' ')}</span>
+                    <span className="font-mono font-bold text-blue-400">{count} ({pct}%)</span>
+                  </div>
+                  <div className="h-1.5 bg-[var(--bg)] rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
 
+        {/* Pipeline value summary */}
         <div className="p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
-          <h3 className="text-base font-bold mb-4 text-[var(--text-1)]">Decision Precision Accuracy</h3>
+          <h3 className="text-base font-bold mb-4 text-[var(--text-1)]">Value Summary</h3>
           <div className="space-y-3 text-xs">
-            {[
-              { label: 'AI Match Accuracy vs Actual Shortlisting', score: '94.2%' },
-              { label: 'Average Time Saved per RFP Qualification', score: '18.5 hrs' },
-              { label: 'Disqualification Risk Avoidance Index', score: '99.1%' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
-                <span className="text-[var(--text-1)] font-medium">{item.label}</span>
-                <span className="font-mono font-bold text-emerald-500">{item.score}</span>
-              </div>
-            ))}
+            <div className="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+              <span className="text-[var(--text-1)] font-medium">Estimated Pipeline Value</span>
+              <span className="font-mono font-bold text-emerald-400">
+                {data?.estimated_pipeline_value ? formatCurrency(data.estimated_pipeline_value) : '—'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+              <span className="text-[var(--text-1)] font-medium">Realized Contract Value</span>
+              <span className="font-mono font-bold text-blue-400">
+                {data?.realized_value ? formatCurrency(data.realized_value) : '—'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+              <span className="text-[var(--text-1)] font-medium">High Priority Matches</span>
+              <span className="font-mono font-bold text-amber-400">{data?.high_priority_count ?? '—'}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+              <span className="text-[var(--text-1)] font-medium">Avg Match Score</span>
+              <span className="font-mono font-bold text-violet-400">{data?.average_match_score ? `${data.average_match_score}/100` : '—'}</span>
+            </div>
           </div>
         </div>
       </div>

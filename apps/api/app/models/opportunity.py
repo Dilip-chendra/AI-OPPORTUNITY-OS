@@ -1,10 +1,10 @@
-from sqlalchemy import Column, String, Boolean, ForeignKey, Numeric, DateTime, Integer, Text
-from sqlalchemy.dialects.postgresql import UUID, JSONB, TSVECTOR
+from sqlalchemy import Column, String, Boolean, ForeignKey, Numeric, DateTime, Integer, Text, Float
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.models.base import TimestampedModel
 
 class Opportunity(TimestampedModel):
     __tablename__ = "opportunities"
-    
+
     external_id = Column(String, index=True, nullable=True)
     title = Column(String, index=True, nullable=False)
     description = Column(Text, nullable=True)
@@ -38,3 +38,21 @@ class Opportunity(TimestampedModel):
     technology_tags = Column(JSONB, nullable=True)
     view_count = Column(Integer, default=0)
     save_count = Column(Integer, default=0)
+
+    # --- Opportunity Thread: Signal Type / Lifecycle Stage ---
+    # Tracks what stage this opportunity is at in the pre-RFP → active lifecycle
+    signal_type = Column(String, nullable=True, default="rfp")
+    # signal_type: early_signal | forecast | pre_rfp | rfi | eoi | rfp | rfq | tender | active | expired
+
+    # --- Opportunity Health ---
+    # Source-level health indicators (populated/updated by ingestion pipeline)
+    source_health = Column(String, nullable=True, default="unverified")
+    # source_health: verified | stale | unreachable | unverified
+    data_completeness_score = Column(Float, nullable=True)  # 0-100
+
+    # Change detection: fingerprint of key fields to detect when the opportunity changes
+    change_fingerprint = Column(String, nullable=True)
+    last_change_detected_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Grouping: opportunities in the same family (e.g., recompete of same contract)
+    opportunity_family_id = Column(UUID(as_uuid=True), nullable=True)

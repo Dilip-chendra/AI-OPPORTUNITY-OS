@@ -28,7 +28,7 @@ export const applicationsApi = {
     api.put<Application>(`/applications/${id}?status=${status}`).then((r) => r.data),
   
   getComplianceMatrix: (id: string) =>
-    api.get<{ application_id: string; matrix: ComplianceClause[] }>(`/applications/${id}/compliance-matrix`).then((r) => r.data.matrix),
+    api.get<{ application_id: string; matrix: ComplianceClause[] }>(`/applications/${id}/compliance-matrix`).then((r) => r.data),
   
   draftProposal: (id: string, section_type: string) =>
     api.post<{ section_type: string; content: string }>(`/applications/${id}/draft-proposal`, { section_type }).then((r) => r.data.content),

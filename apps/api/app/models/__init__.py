@@ -9,9 +9,10 @@ from app.models.application import Application
 from app.models.notification import Notification
 from app.models.ai_conversation import AIConversation
 from app.models.audit_log import AuditLog
+from app.models.evidence_document import EvidenceDocument
 
 __all__ = [
     'Base', 'User', 'Organization', 'BusinessProfile', 'Opportunity',
     'OpportunityScore', 'SavedOpportunity', 'Application', 'Notification',
-    'AIConversation', 'AuditLog'
+    'AIConversation', 'AuditLog', 'EvidenceDocument'
 ]

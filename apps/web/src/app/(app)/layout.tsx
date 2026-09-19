@@ -1,21 +1,30 @@
-﻿'use client'
+'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/app/sidebar'
 import { TopNav } from '@/components/app/top-nav'
+import { useAuth } from '@/lib/hooks/use-auth'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const { user } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    const token = localStorage.getItem('access_token')
-    if (!token) { router.replace('/login'); return }
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+    if (!token) {
+      if (typeof document !== 'undefined') {
+        document.cookie = 'access_token=; path=/; max-age=0; SameSite=Lax'
+      }
+      router.replace('/login')
+      return
+    }
     const col = localStorage.getItem('sidebar_collapsed')
     if (col === 'true') setCollapsed(true)
-  }, [router])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])  // run once on mount — router is stable, removing it eliminates double-fire in StrictMode
 
   const toggleCollapse = () => {
     const next = !collapsed

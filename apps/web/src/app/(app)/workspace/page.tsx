@@ -1,6 +1,7 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
 import { applicationsApi } from '@/lib/api/applications'
+import { analyticsApi } from '@/lib/api/analytics'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Button } from '@/components/ui/button'
 import { MetricCard } from '@/components/ui/metric-card'
@@ -8,12 +9,17 @@ import { FolderOpen, Plus, Clock, ArrowRight, ShieldCheck, Trophy } from 'lucide
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { Application } from '@/types'
+import { formatCurrency } from '@/lib/utils'
 
 export default function WorkspacePage() {
   const router = useRouter()
   const { data: apps, isLoading } = useQuery<Application[]>({
     queryKey: ['applications'],
     queryFn: applicationsApi.list,
+  })
+  const { data: analytics } = useQuery({
+    queryKey: ['analytics-overview'],
+    queryFn: analyticsApi.overview,
   })
 
   const stageColumns = [
@@ -26,6 +32,11 @@ export default function WorkspacePage() {
 
   const items: Application[] = apps || []
 
+  const pipelineValue = analytics?.estimated_pipeline_value
+    ? formatCurrency(analytics.estimated_pipeline_value)
+    : items.length > 0 ? '—' : '₹0'
+  const winRate = analytics?.win_rate !== undefined ? `${analytics.win_rate}%` : '—'
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -35,21 +46,20 @@ export default function WorkspacePage() {
             <FolderOpen className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-extrabold text-[var(--text-1)]">Pursuit Workspaces & Kanban</h1>
+            <h1 className="text-2xl font-extrabold text-[var(--text-1)]">Pursuit Workspace</h1>
             <p className="text-xs sm:text-sm text-[var(--text-2)]">Active proposal drafting, compliance matrices, and bid progression pipelines.</p>
           </div>
         </div>
-
         <Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => router.push('/radar')}>
           Pursue New Opportunity
         </Button>
       </div>
 
-      {/* Metrics Row */}
+      {/* Metrics Row — real data from analytics API */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <MetricCard label="Active Pursuit Workspaces" value={items.length} icon={<FolderOpen className="h-4 w-4" />} loading={isLoading} />
-        <MetricCard label="Weighted Pipeline Value" value="₹8.4 Cr" icon={<ShieldCheck className="h-4 w-4" />} loading={isLoading} />
-        <MetricCard label="Historical Win Rate" value="68%" icon={<Trophy className="h-4 w-4" />} loading={isLoading} />
+        <MetricCard label="Weighted Pipeline Value" value={pipelineValue} icon={<ShieldCheck className="h-4 w-4" />} loading={isLoading} />
+        <MetricCard label="Historical Win Rate" value={winRate} icon={<Trophy className="h-4 w-4" />} loading={isLoading} />
       </div>
 
       {/* Kanban Board View */}
@@ -59,55 +69,39 @@ export default function WorkspacePage() {
             <div key={i} className="skeleton h-80 rounded-2xl" />
           ))}
         </div>
-      ) : !items.length ? (
+      ) : items.length === 0 ? (
         <EmptyState
-          preset="no-applications"
-          title="No active pursuit workspaces"
-          description="Click 'Pursue' on any opportunity in your Opportunity Radar to launch an execution workspace with compliance matrices and AI proposal drafting."
-          action={{ label: 'Explore Opportunity Radar', onClick: () => router.push('/radar') }}
+          title="No active pursuits"
+          description="Browse the Opportunity Radar to find and start pursuing opportunities."
+          action={{ label: 'Explore Opportunities', onClick: () => router.push('/radar') }}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
-          {stageColumns.map((col) => {
-            const colItems = items.filter(
-              (a: Application) =>
-                a.status === col.key ||
-                (col.key === 'in_progress' && !['draft', 'review', 'submitted', 'won', 'lost'].includes(a.status))
-            )
-            return (
-              <div key={col.key} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3.5 flex flex-col min-h-[420px]">
-                <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--border)]">
-                  <span className="text-xs font-bold text-[var(--text-1)]">{col.label}</span>
-                  <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg)] text-[var(--text-3)]">
-                    {colItems.length}
-                  </span>
-                </div>
-
-                <div className="space-y-3 flex-1">
-                  {colItems.map((app: Application) => (
-                    <Link
-                      key={app.id}
-                      href={`/workspace/${app.id}`}
-                      className="block p-4 rounded-xl border border-[var(--border)] bg-[var(--bg)] hover:border-blue-500/40 hover:shadow-md transition-all group"
-                    >
-                      <h4 className="font-bold text-xs line-clamp-2 text-[var(--text-1)] group-hover:text-blue-500 transition-colors mb-2">
-                        {app.title}
-                      </h4>
-                      <div className="flex items-center justify-between text-[11px] text-[var(--text-3)] pt-2 border-t border-[var(--border)]">
-                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> Open Studio</span>
-                        <ArrowRight className="h-3.5 w-3.5 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {stageColumns.map(col => (
+            <div key={col.key} className={`rounded-2xl border-2 p-4 min-h-[200px] ${col.color}`}>
+              <h3 className="text-xs font-bold mb-3 uppercase tracking-wider text-[var(--text-2)]">{col.label}</h3>
+              <div className="space-y-2">
+                {items.filter(a => a.status === col.key).map(app => (
+                  <Link
+                    href={`/workspace/${app.id}`}
+                    key={app.id}
+                    className="block p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] hover:border-blue-500/60 transition-colors cursor-pointer"
+                  >
+                    <p className="text-xs font-semibold text-[var(--text-1)] line-clamp-2">{app.title}</p>
+                    {app.deadline && (
+                      <div className="flex items-center gap-1 mt-1.5 text-[10px] text-[var(--text-3)]">
+                        <Clock className="h-3 w-3" />
+                        <span>{new Date(app.deadline).toLocaleDateString()}</span>
                       </div>
-                    </Link>
-                  ))}
-                  {colItems.length === 0 && (
-                    <div className="h-32 border border-dashed border-[var(--border)] rounded-xl flex items-center justify-center text-[11px] text-[var(--text-3)]">
-                      No bids in this stage
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </Link>
+                ))}
+                {items.filter(a => a.status === col.key).length === 0 && (
+                  <p className="text-[11px] text-[var(--text-3)] italic">No pursuits here</p>
+                )}
               </div>
-            )
-          })}
+            </div>
+          ))}
         </div>
       )}
     </div>

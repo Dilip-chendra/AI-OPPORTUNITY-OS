@@ -38,9 +38,19 @@ async def get_current_user(
     return user
 
 async def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail='Admin access required')
+    if not (current_user.is_admin or current_user.role in ['owner', 'admin']):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Admin access required')
     return current_user
+
+def require_roles(*allowed_roles: str):
+    async def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Role '{current_user.role}' is not authorized. Allowed roles: {', '.join(allowed_roles)}"
+            )
+        return current_user
+    return role_checker
 
 async def get_current_org(
     current_user: User = Depends(get_current_user),
@@ -49,5 +59,6 @@ async def get_current_org(
     result = await db.execute(select(Organization).where(Organization.id == current_user.organization_id))
     org = result.scalar_one_or_none()
     if not org:
-        raise HTTPException(status_code=404, detail='Organization not found')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Organization not found')
     return org
+

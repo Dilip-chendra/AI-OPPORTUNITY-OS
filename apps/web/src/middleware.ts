@@ -7,8 +7,9 @@ const onboardingRoute = '/onboard'
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const token = request.cookies.get('access_token')?.value || 
+  const rawToken = request.cookies.get('access_token')?.value || 
     request.headers.get('authorization')?.replace('Bearer ', '')
+  const token = (rawToken && rawToken !== 'undefined' && rawToken !== 'null' && rawToken.trim() !== '') ? rawToken : null
   
   const isPublic = publicRoutes.some(r => pathname === r)
   const isAuth = authRoutes.some(r => pathname.startsWith(r))
@@ -24,7 +25,9 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/settings')
   
   if (isApp && !token) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    const res = NextResponse.redirect(new URL('/login', request.url))
+    res.cookies.delete('access_token')
+    return res
   }
   
   if (isAuth && token) {

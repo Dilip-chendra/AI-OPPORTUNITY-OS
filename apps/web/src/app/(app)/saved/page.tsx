@@ -29,14 +29,14 @@ export default function SavedPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => <CardSkeleton key={i} />)}
         </div>
-      ) : !data?.data?.length ? (
+      ) : !data?.length ? (
         <EmptyState
           preset="no-saved"
           action={{ label: 'Explore Opportunity Radar', onClick: () => router.push('/radar') }}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data.data.map((opp) => (
+          {data.map((opp: any) => (
             <OpportunityCard key={opp.id} opportunity={opp} score={opp.score} isSaved />
           ))}
         </div>
