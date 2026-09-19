@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 export function FinalCTASection() {
   return (
     <section className="py-24 relative overflow-hidden bg-[var(--surface-elevated)] border-t border-[var(--border)]">
+      {/* Subtle Telemetry Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,23,42,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.06)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] pointer-events-none" />
       <div className="max-w-4xl mx-auto px-6 text-center relative z-10 space-y-6">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text-2)] text-[11px] font-mono font-medium shadow-2xs">
           <Terminal className="h-3.5 w-3.5 text-cyan-500" />
