@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes'
 import {
   LayoutDashboard, Radar, Compass, Sparkles, Layers,
   Wallet, Building2, Briefcase, Globe, Handshake, Lightbulb, FlaskConical,
-  Bookmark, FileText, FolderOpen, Bot, Shield,
+  Bookmark, FileText, FolderOpen, Bot, Shield, Scale, Brain,
   Fingerprint, Bell, BarChart3, Settings,
   ChevronLeft, ChevronRight, Zap, X
 } from 'lucide-react'
@@ -27,43 +27,43 @@ interface NavSection {
 
 const NAV_SECTIONS: NavSection[] = [
   {
-    label: 'Discovery',
+    label: 'Intelligence',
     items: [
-      { href: '/overview', label: 'Overview', icon: <LayoutDashboard className="h-4 w-4" /> },
+      { href: '/overview', label: 'Command Pulse', icon: <LayoutDashboard className="h-4 w-4" /> },
       { href: '/radar', label: 'Opportunity Radar', icon: <Radar className="h-4 w-4" /> },
       { href: '/whitespace', label: 'Whitespace', icon: <Layers className="h-4 w-4" /> },
-      { href: '/explore', label: 'Explore', icon: <Compass className="h-4 w-4" /> },
-      { href: '/for-you', label: 'For You', icon: <Sparkles className="h-4 w-4" /> },
+      { href: '/for-you', label: 'Recommended', icon: <Sparkles className="h-4 w-4" /> },
+      { href: '/explore', label: 'Explore & Search', icon: <Compass className="h-4 w-4" /> },
     ],
   },
   {
-    label: 'Categories',
+    label: 'Decision',
     items: [
-      { href: '/funding', label: 'Funding', icon: <Wallet className="h-4 w-4" /> },
-      { href: '/government', label: 'Government', icon: <Building2 className="h-4 w-4" /> },
-      { href: '/corporate', label: 'Corporate', icon: <Briefcase className="h-4 w-4" /> },
-      { href: '/global', label: 'Global', icon: <Globe className="h-4 w-4" /> },
-      { href: '/partnerships', label: 'Partnerships', icon: <Handshake className="h-4 w-4" /> },
-      { href: '/innovation', label: 'Innovation', icon: <Lightbulb className="h-4 w-4" /> },
-      { href: '/research', label: 'Research', icon: <FlaskConical className="h-4 w-4" /> },
+      { href: '/decision', label: 'Decision Center', icon: <Scale className="h-4 w-4" /> },
+      { href: '/saved', label: 'Saved Watchlist', icon: <Bookmark className="h-4 w-4" /> },
     ],
   },
   {
-    label: 'Pursuit',
+    label: 'Execution',
     items: [
-      { href: '/saved', label: 'Saved', icon: <Bookmark className="h-4 w-4" /> },
-      { href: '/applications', label: 'Applications', icon: <FileText className="h-4 w-4" /> },
+      { href: '/applications', label: 'Active Pursuits', icon: <FileText className="h-4 w-4" /> },
       { href: '/workspace', label: 'Pursuit Workspace', icon: <FolderOpen className="h-4 w-4" /> },
       { href: '/workspace/evidence', label: 'Evidence Vault', icon: <Shield className="h-4 w-4" /> },
       { href: '/ai-analyst', label: 'AI Analyst', icon: <Bot className="h-4 w-4" /> },
     ],
   },
   {
-    label: 'Manage',
+    label: 'Memory',
+    items: [
+      { href: '/learning', label: 'Outcome Learning', icon: <Brain className="h-4 w-4" /> },
+      { href: '/analytics', label: 'Performance Analytics', icon: <BarChart3 className="h-4 w-4" /> },
+    ],
+  },
+  {
+    label: 'DNA & Admin',
     items: [
       { href: '/business-dna', label: 'Business DNA', icon: <Fingerprint className="h-4 w-4" /> },
-      { href: '/alerts', label: 'Alerts', icon: <Bell className="h-4 w-4" /> },
-      { href: '/analytics', label: 'Analytics', icon: <BarChart3 className="h-4 w-4" /> },
+      { href: '/alerts', label: 'Alerts & Corrigenda', icon: <Bell className="h-4 w-4" /> },
       { href: '/settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> },
     ],
   },

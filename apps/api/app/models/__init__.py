@@ -12,10 +12,14 @@ from app.models.audit_log import AuditLog
 from app.models.evidence_document import EvidenceDocument
 from app.models.business_profile_version import BusinessProfileVersion
 from app.models.opportunity_thread import OpportunityThread
+from app.models.decision_journal import DecisionJournal
+from app.models.outcome_learning import OutcomeLearning
 
 __all__ = [
     'Base', 'User', 'Organization', 'BusinessProfile', 'Opportunity',
     'OpportunityScore', 'SavedOpportunity', 'Application', 'Notification',
     'AIConversation', 'AuditLog', 'EvidenceDocument',
-    'BusinessProfileVersion', 'OpportunityThread'
+    'BusinessProfileVersion', 'OpportunityThread',
+    'DecisionJournal', 'OutcomeLearning'
 ]
+

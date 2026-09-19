@@ -8,7 +8,7 @@ from app.routers import (
     auth, opportunities, business_profile, search, alerts,
     analytics, ai, applications, admin, health,
     evidence_vault, lifecycle, bid_decision, requirement_shredder,
-    intelligence
+    intelligence, decision, learning
 )
 
 @asynccontextmanager
@@ -128,6 +128,10 @@ app.include_router(lifecycle.router, prefix='/lifecycle', tags=['lifecycle'])
 app.include_router(bid_decision.router, prefix='/bid-decision', tags=['bid-decision'])
 app.include_router(requirement_shredder.router, prefix='/shredder', tags=['requirement-shredder'])
 app.include_router(intelligence.router, prefix='/intelligence', tags=['intelligence'])
+
+# OpportunityOS 3.0 routes
+app.include_router(decision.router)
+app.include_router(learning.router)
 
 # Legacy compat route
 app.add_api_route('/recommendations', opportunities.get_recommendations, methods=['GET'], tags=['opportunities'])

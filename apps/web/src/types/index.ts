@@ -472,3 +472,144 @@ export interface SimulationResult {
   strategic_recommendation: string;
 }
 
+export interface GateCheck {
+  name: string;
+  category: string;
+  passed: boolean;
+  detail: string;
+}
+
+export interface UnlockStrategy {
+  status: 'PURSUIT_READY' | 'PARTIAL_NEEDS_PARTNER' | 'NOT_READY';
+  title: string;
+  action: string;
+  suggested_partner_profile?: string | null;
+  remediation_steps: string[];
+}
+
+export interface HardGatesStatus {
+  all_passed: boolean;
+  gates: GateCheck[];
+  failed_count: number;
+  unlock_strategy: UnlockStrategy;
+}
+
+export interface BidEvaluationResult {
+  opportunity_id: string;
+  opportunity_title: string;
+  category: string;
+  buyer: string;
+  deadline?: string | null;
+  verdict: 'pursue' | 'no_bid' | 'partner_needed' | 'watch';
+  verdict_reason: string;
+  overall_score: number;
+  win_probability_pct: number;
+  hard_gates: HardGatesStatus;
+  economic_evaluation: {
+    contract_value: number;
+    currency: string;
+    target_margin_pct: number;
+    estimated_effort_days: number;
+    estimated_pursuit_cost: number;
+    expected_profit: number;
+    risk_weighted_expected_value: number;
+    bid_roi_score: number;
+  };
+  capacity_impact: {
+    active_pursuits_count: number;
+    max_recommended_concurrent: number;
+    bandwidth_available: boolean;
+    deadline_risk_level: string;
+    team_bandwidth_hours: number;
+  };
+  strengths: string[];
+}
+
+export interface DecisionJournalEntry {
+  id: string;
+  opportunity_id: string;
+  opportunity_title: string;
+  buyer: string;
+  opportunity_value?: number | null;
+  opportunity_deadline?: string | null;
+  decision: 'pursue' | 'no_bid' | 'partner_needed' | 'watch';
+  decided_at: string;
+  rationale: string;
+  assumptions: string[];
+  hard_gates_status?: HardGatesStatus;
+  economic_evaluation?: any;
+  capacity_impact?: any;
+  partner_requirements?: string[];
+}
+
+export interface PursuitTimelineItem {
+  application_id: string;
+  opportunity_id?: string | null;
+  title: string;
+  buyer: string;
+  status: string;
+  lifecycle_stage: string;
+  deadline?: string | null;
+  days_remaining?: number | null;
+  estimated_effort_hours: number;
+  value: number;
+}
+
+export interface DeadlineCollision {
+  pursuit_1: string;
+  pursuit_2: string;
+  deadline_1: string;
+  deadline_2: string;
+  gap_days: number;
+  warning: string;
+}
+
+export interface PortfolioCapacity {
+  active_pursuits_count: number;
+  total_estimated_hours: number;
+  weekly_capacity_hours: number;
+  utilization_pct: number;
+  capacity_status: 'available' | 'optimal' | 'overloaded';
+  collisions_count: number;
+  collisions: DeadlineCollision[];
+  pursuits: PursuitTimelineItem[];
+}
+
+export interface RecurrentBlocker {
+  category: string;
+  label: string;
+  frequency: number;
+  severity: 'high' | 'medium' | 'low';
+  remediation: string;
+}
+
+export interface RetrospectiveEntry {
+  id: string;
+  opportunity_id: string;
+  opportunity_title: string;
+  buyer: string;
+  outcome: 'won' | 'lost' | 'no_bid' | 'disqualified' | 'withdrawn' | 'expired';
+  award_value?: number | null;
+  currency: string;
+  winner_name?: string | null;
+  primary_reason_category?: string | null;
+  detailed_retrospective?: string;
+  lessons_learned: string[];
+  created_at?: string;
+}
+
+export interface LearningPulse {
+  total_outcomes: number;
+  win_count: number;
+  loss_count: number;
+  disqualified_count: number;
+  win_rate_pct: number;
+  total_won_value: number;
+  recurrent_blockers: RecurrentBlocker[];
+  loss_reason_breakdown: Array<{ category: string; count: number; label: string }>;
+  lessons_learned: Array<{ lesson: string; outcome: string; opportunity_title: string }>;
+  reusable_artifacts: Array<{ title: string; type?: string; summary?: string; doc_id?: string }>;
+  recent_retrospectives: RetrospectiveEntry[];
+}
+
+

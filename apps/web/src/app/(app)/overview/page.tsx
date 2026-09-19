@@ -6,6 +6,7 @@ import { applicationsApi } from '@/lib/api/applications'
 import { alertsApi } from '@/lib/api/alerts'
 import { businessProfileApi } from '@/lib/api/business-profile'
 import { intelligenceApi } from '@/lib/api/intelligence'
+import { learningApi } from '@/lib/api/learning'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { MetricCard } from '@/components/ui/metric-card'
 import { OpportunityCard, CardSkeleton } from '@/components/opportunity/opportunity-card'
@@ -18,7 +19,8 @@ import { getRoleBadgeConfig, RolePermissions } from '@/lib/permissions'
 import { 
   Bell, Clock, Target, TrendingUp, Shield, FolderOpen, 
   Sparkles, CheckCircle2, FileText, ArrowRight, Bot, Lock, Award,
-  Fingerprint, Zap, Layers, AlertCircle, Calendar, ArrowUpRight
+  Fingerprint, Zap, Layers, AlertCircle, Calendar, ArrowUpRight,
+  Scale, Brain
 } from 'lucide-react'
 
 export default function OverviewPage() {
@@ -55,6 +57,11 @@ export default function OverviewPage() {
   const { data: workQueue, isLoading: queueLoading } = useQuery({
     queryKey: ['smart-work-queue'],
     queryFn: intelligenceApi.getWorkQueue,
+  })
+
+  const { data: learningPulse } = useQuery({
+    queryKey: ['learning-pulse-overview'],
+    queryFn: learningApi.getPulse,
   })
 
   const firstName = user?.full_name?.split(' ')[0] || 'there'
@@ -131,8 +138,9 @@ export default function OverviewPage() {
         {/* Quick Route Actions */}
         <div className="flex items-center gap-2">
           {RolePermissions.canCreateApplication(role) && (
-            <Button size="sm" variant="default" onClick={() => router.push('/radar')}>
-              Find Opportunities
+            <Button size="sm" variant="default" onClick={() => router.push('/decision')}>
+              <Scale className="h-3.5 w-3.5 mr-1" />
+              Decision Center
             </Button>
           )}
           <Button size="sm" variant="outline" onClick={() => router.push('/workspace')}>
@@ -145,6 +153,130 @@ export default function OverviewPage() {
           )}
         </div>
       </div>
+
+      {/* OPPORTUNITYOS 3.0: THE 5 NORTH STAR QUESTIONS MORNING BRIEFING */}
+      <section className="p-5 rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-500/10 via-purple-500/5 to-cyan-500/10 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                Operating System Briefing
+              </span>
+              <h2 className="text-base font-bold text-[var(--text-1)]">
+                The 5 Morning Briefing Questions
+              </h2>
+            </div>
+            <p className="text-xs text-[var(--text-2)] mt-0.5">
+              Real-time executive answers dynamically derived from your verified Business DNA and live market signals.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => router.push('/decision')}>
+              <Scale className="h-3.5 w-3.5 mr-1 text-blue-400" /> Bid/No-Bid Workbench
+            </Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => router.push('/learning')}>
+              <Brain className="h-3.5 w-3.5 mr-1 text-purple-400" /> Learning Pulse
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* 1. WHAT CHANGED? */}
+          <div 
+            onClick={() => router.push('/alerts')}
+            className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-cyan-500/50 cursor-pointer transition-all space-y-1.5"
+          >
+            <div className="flex items-center justify-between text-[11px] text-[var(--text-2)] font-semibold">
+              <span className="flex items-center gap-1.5 text-cyan-400">
+                <Bell className="h-3.5 w-3.5" /> 1. What Changed?
+              </span>
+              <span className="font-mono text-cyan-400 font-bold">{alerts?.total || 0} signals</span>
+            </div>
+            <p className="text-xs font-bold text-[var(--text-1)]">
+              {alerts?.data?.[0]?.title?.slice(0, 45) || 'No new corrigenda'}
+            </p>
+            <p className="text-[10px] text-[var(--text-2)]">
+              Corrigenda, buyer updates & signals
+            </p>
+          </div>
+
+          {/* 2. WHAT MATTERS? */}
+          <div 
+            onClick={() => router.push('/radar')}
+            className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-blue-500/50 cursor-pointer transition-all space-y-1.5"
+          >
+            <div className="flex items-center justify-between text-[11px] text-[var(--text-2)] font-semibold">
+              <span className="flex items-center gap-1.5 text-blue-400">
+                <Target className="h-3.5 w-3.5" /> 2. What Matters?
+              </span>
+              <span className="font-mono text-blue-400 font-bold">{recommendations?.length || 0} top</span>
+            </div>
+            <p className="text-xs font-bold text-[var(--text-1)]">
+              {recommendations?.[0]?.score?.overall_score ? `${recommendations[0].score.overall_score}% Highest Match` : 'Hard Gates Screened'}
+            </p>
+            <p className="text-[10px] text-[var(--text-2)]">
+              Filtered by mandatory qualifications
+            </p>
+          </div>
+
+          {/* 3. WHY IT MATTERS? */}
+          <div 
+            onClick={() => router.push('/business-dna')}
+            className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-emerald-500/50 cursor-pointer transition-all space-y-1.5"
+          >
+            <div className="flex items-center justify-between text-[11px] text-[var(--text-2)] font-semibold">
+              <span className="flex items-center gap-1.5 text-emerald-400">
+                <Fingerprint className="h-3.5 w-3.5" /> 3. Why It Matters?
+              </span>
+              <span className="font-mono text-emerald-400 font-bold">DNA Match</span>
+            </div>
+            <p className="text-xs font-bold text-[var(--text-1)] truncate">
+              {businessContext?.company_name || 'Verified DNA'}
+            </p>
+            <p className="text-[10px] text-[var(--text-2)]">
+              Grounded in verified capabilities
+            </p>
+          </div>
+
+          {/* 4. WHAT NEXT? */}
+          <div 
+            onClick={() => router.push('/workspace')}
+            className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-amber-500/50 cursor-pointer transition-all space-y-1.5"
+          >
+            <div className="flex items-center justify-between text-[11px] text-[var(--text-2)] font-semibold">
+              <span className="flex items-center gap-1.5 text-amber-400">
+                <Zap className="h-3.5 w-3.5" /> 4. What Next?
+              </span>
+              <span className="font-mono text-amber-400 font-bold">{workQueue?.items?.length || 0} tasks</span>
+            </div>
+            <p className="text-xs font-bold text-[var(--text-1)] truncate">
+              {workQueue?.items?.[0]?.title?.slice(0, 38) || 'Active Work Queue'}
+            </p>
+            <p className="text-[10px] text-[var(--text-2)]">
+              Smart dispatch & upcoming deadlines
+            </p>
+          </div>
+
+          {/* 5. WHAT LEARNING? */}
+          <div 
+            onClick={() => router.push('/learning')}
+            className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-purple-500/50 cursor-pointer transition-all space-y-1.5"
+          >
+            <div className="flex items-center justify-between text-[11px] text-[var(--text-2)] font-semibold">
+              <span className="flex items-center gap-1.5 text-purple-400">
+                <Brain className="h-3.5 w-3.5" /> 5. What Learning?
+              </span>
+              <span className="font-mono text-purple-400 font-bold">{learningPulse?.win_rate_pct ?? 0}% Win</span>
+            </div>
+            <p className="text-xs font-bold text-[var(--text-1)] truncate">
+              {learningPulse?.recurrent_blockers?.[0]?.label?.slice(0, 32) || `${learningPulse?.total_outcomes ?? 0} Outcomes Tracked`}
+            </p>
+            <p className="text-[10px] text-[var(--text-2)]">
+              Post-mortems & repeat blockers
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Role-Specific Metric Cards */}
       {/* 1. OWNER / ADMIN VIEW */}

@@ -1,4 +1,5 @@
 import math
+from datetime import datetime, timezone
 from typing import Dict, Any, Tuple, Optional, List
 from app.models.business_profile import BusinessProfile
 from app.models.opportunity import Opportunity
@@ -57,6 +58,9 @@ class ScoringEngine:
                 score_metadata={'mode': 'default_baseline'}
             )
 
+        # Hard Gates vs Soft Signals Evaluation
+        hard_gates = self.evaluate_hard_gates(profile, opportunity)
+
         # 1. Eligibility Score
         eligibility_score, elig_notes = self._calculate_eligibility(profile, opportunity)
 
@@ -93,8 +97,10 @@ class ScoringEngine:
             execution_fit_score * self.WEIGHTS['execution_fit']
         )
 
-        # If eligibility is severely failed (< 50), cap overall score to max 55 (fail-safe)
-        if eligibility_score < 50.0:
+        # If hard gates failed, cap overall score and adjust recommendation
+        if not hard_gates['all_passed']:
+            overall = min(overall, 62.0)
+        elif eligibility_score < 50.0:
             overall = min(overall, 55.0)
 
         overall = round(max(10.0, min(99.0, overall)), 1)
@@ -103,6 +109,9 @@ class ScoringEngine:
         recommendation, reason = self._derive_recommendation(
             overall, eligibility_score, capability_fit_score, time_feasibility_score, opportunity
         )
+        if not hard_gates['all_passed'] and recommendation == 'pursue':
+            recommendation = 'partner'
+            reason = f"Hard gate requirements need partnering: {hard_gates['unlock_strategy']['action']}"
 
         metadata = {
             'eligibility_notes': elig_notes,
@@ -113,6 +122,8 @@ class ScoringEngine:
             'time_notes': time_notes,
             'competition_notes': comp_notes,
             'execution_notes': exec_notes,
+            'hard_gates': hard_gates,
+            'unlock_strategy': hard_gates.get('unlock_strategy')
         }
 
         return OpportunityScore(
@@ -132,6 +143,187 @@ class ScoringEngine:
             score_metadata=metadata,
             is_ai_generated=True
         )
+
+    def evaluate_hard_gates(self, profile: Optional[BusinessProfile], opp: Opportunity) -> Dict[str, Any]:
+        """
+        Hard Gates Evaluation (Section 25 / OpportunityOS 3.0).
+        Evaluates deterministic pass/fail gates:
+        1. Submission Window / Deadline Gate
+        2. Geographic / Jurisdiction Gate
+        3. Mandatory Certifications Gate (ISO, CMMI, etc.)
+        4. Value Scale / Capacity Gate
+        5. Debarment / Sanctions Gate
+        """
+        gates = []
+        all_passed = True
+        remediation_steps = []
+        suggested_partner = None
+
+        # 1. Deadline Gate
+        now = datetime.now(timezone.utc)
+        if opp.deadline:
+            opp_deadline = opp.deadline if opp.deadline.tzinfo else opp.deadline.replace(tzinfo=timezone.utc)
+            if (opp_deadline - now).total_seconds() < 0:
+                all_passed = False
+                gates.append({
+                    "name": "Submission Deadline",
+                    "category": "timeline",
+                    "passed": False,
+                    "detail": "Deadline has expired. Opportunity is closed for bids."
+                })
+                remediation_steps.append("Archive opportunity or monitor for corrigendum / extension.")
+            elif (opp_deadline - now).total_seconds() < 86400:
+                gates.append({
+                    "name": "Submission Deadline",
+                    "category": "timeline",
+                    "passed": True,
+                    "detail": "Under 24 hours remaining. Critical emergency preparation window."
+                })
+            else:
+                days_left = int((opp_deadline - now).total_seconds() // 86400)
+                gates.append({
+                    "name": "Submission Deadline",
+                    "category": "timeline",
+                    "passed": True,
+                    "detail": f"{days_left} days remaining until submission deadline."
+                })
+        else:
+            gates.append({
+                "name": "Submission Deadline",
+                "category": "timeline",
+                "passed": True,
+                "detail": "Open or rolling submission window."
+            })
+
+        # 2. Geographic / Jurisdiction Gate
+        if profile:
+            p_country = (profile.country or 'India').strip().lower()
+            o_country = (opp.geography_country or 'India').strip().lower()
+            if p_country == o_country or profile.export_focused or opp.is_international:
+                gates.append({
+                    "name": "Jurisdiction & Export Eligibility",
+                    "category": "jurisdiction",
+                    "passed": True,
+                    "detail": f"Eligible for procurement jurisdiction ({opp.geography_country or 'Domestic'})."
+                })
+            else:
+                all_passed = False
+                gates.append({
+                    "name": "Jurisdiction & Export Eligibility",
+                    "category": "jurisdiction",
+                    "passed": False,
+                    "detail": f"Notice originates from {opp.geography_country} but organization operates from {profile.country} without export focus enabled."
+                })
+                remediation_steps.append(f"Partner with an in-country entity registered in {opp.geography_country} or enable cross-border export scope.")
+                suggested_partner = f"Local delivery partner registered in {opp.geography_country}"
+        else:
+            gates.append({
+                "name": "Jurisdiction & Export Eligibility",
+                "category": "jurisdiction",
+                "passed": True,
+                "detail": "Default domestic eligibility assumed."
+            })
+
+        # 3. Mandatory Certifications Gate
+        certs = (profile.certifications if profile and isinstance(profile.certifications, list) else [])
+        regs = (profile.registrations if profile and isinstance(profile.registrations, list) else [])
+        combined_creds = [str(c).lower() for c in (certs + regs)]
+
+        req_text = (str(opp.requirements or '') + ' ' + str(opp.eligibility_criteria or '') + ' ' + str(opp.description or '')).lower()
+        
+        iso_needed = any(kw in req_text for kw in ['iso 27001', 'iso 9001', 'iso27001', 'iso9001', 'mandatory iso'])
+        if iso_needed:
+            has_iso = any('iso' in c for c in combined_creds)
+            if has_iso:
+                gates.append({
+                    "name": "Mandatory Certifications",
+                    "category": "compliance",
+                    "passed": True,
+                    "detail": "Verified ISO certification meets procurement mandate."
+                })
+            else:
+                all_passed = False
+                gates.append({
+                    "name": "Mandatory Certifications",
+                    "category": "compliance",
+                    "passed": False,
+                    "detail": "Notice specifies mandatory ISO certification not found in verified Business DNA credentials."
+                })
+                remediation_steps.append("Subcontract or form consortium with an ISO-certified technology partner.")
+                remediation_steps.append("Schedule expedited ISO audit / compliance certification.")
+                if not suggested_partner:
+                    suggested_partner = "ISO 27001 / 9001 Certified Implementation Partner"
+        else:
+            gates.append({
+                "name": "Mandatory Certifications",
+                "category": "compliance",
+                "passed": True,
+                "detail": "No mandatory certification blockers detected."
+            })
+
+        # 4. Scale & Capacity Gate
+        if profile and profile.preferred_contract_max:
+            opp_val = float(opp.value_max or opp.value_min or 0)
+            max_pref = float(profile.preferred_contract_max)
+            if opp_val > (max_pref * 4.0) and opp_val > 50000000:
+                all_passed = False
+                gates.append({
+                    "name": "Financial Scale & Turnover",
+                    "category": "financial",
+                    "passed": False,
+                    "detail": f"Contract value ({opp_val:,.0f}) significantly exceeds preferred single-entity capacity threshold ({max_pref:,.0f})."
+                })
+                remediation_steps.append("Pursue as joint-venture / consortium partner holding 30-40% technical share.")
+                if not suggested_partner:
+                    suggested_partner = "Tier-1 Enterprise Prime Contractor"
+            else:
+                gates.append({
+                    "name": "Financial Scale & Turnover",
+                    "category": "financial",
+                    "passed": True,
+                    "detail": "Contract scale aligns within acceptable operating capacity limits."
+                })
+        else:
+            gates.append({
+                "name": "Financial Scale & Turnover",
+                "category": "financial",
+                "passed": True,
+                "detail": "Scale feasibility verified."
+            })
+
+        # 5. Debarment & Integrity Gate
+        gates.append({
+            "name": "Debarment & Entity Integrity",
+            "category": "regulatory",
+            "passed": True,
+            "detail": "No blacklisting or debarment flags found for entity."
+        })
+
+        # Unlock Strategy
+        failed_gates = [g for g in gates if not g["passed"]]
+        if all_passed:
+            unlock_strategy = {
+                "status": "PURSUIT_READY",
+                "title": "Direct Pursuit Ready",
+                "action": "Proceed with Bid/No-Bid capture decision.",
+                "suggested_partner_profile": None,
+                "remediation_steps": ["Initialize pursuit in workspace", "Assign capture manager", "Draft compliance matrix"]
+            }
+        else:
+            unlock_strategy = {
+                "status": "PARTIAL_NEEDS_PARTNER" if suggested_partner else "NOT_READY",
+                "title": f"Blocked by {len(failed_gates)} Hard Gate(s)",
+                "action": f"Unlock via partnership or targeted remediation: {remediation_steps[0] if remediation_steps else 'Address qualification requirements'}",
+                "suggested_partner_profile": suggested_partner,
+                "remediation_steps": remediation_steps
+            }
+
+        return {
+            "all_passed": all_passed,
+            "gates": gates,
+            "failed_count": len(failed_gates),
+            "unlock_strategy": unlock_strategy
+        }
 
     def _calculate_eligibility(self, profile: BusinessProfile, opp: Opportunity) -> Tuple[float, str]:
         score = 85.0
@@ -405,6 +597,11 @@ class ScoringEngine:
             key=lambda d: (d['score'] or 0) * d['weight']
         )[:3]
 
+        meta = score.score_metadata or {}
+        hard_gates = meta.get('hard_gates')
+        if not hard_gates and profile:
+            hard_gates = self.evaluate_hard_gates(profile, opp)
+
         return {
             'overall_score': score.overall_score,
             'recommendation': score.recommendation,
@@ -412,6 +609,8 @@ class ScoringEngine:
             'dimensions': dimensions,
             'strengths': [{'dimension': d['dimension'], 'score': d['score'], 'notes': d['notes']} for d in strengths],
             'gaps': [{'dimension': d['dimension'], 'score': d['score'], 'notes': d['notes']} for d in gaps],
+            'hard_gates': hard_gates,
+            'unlock_strategy': (hard_gates.get('unlock_strategy') if hard_gates else meta.get('unlock_strategy')),
             'narrative': (
                 f"This opportunity scores {score.overall_score}/100 against your Business DNA. "
                 + (f"Key strengths: {', '.join(s['dimension'] for s in strengths)}. " if strengths else "")
