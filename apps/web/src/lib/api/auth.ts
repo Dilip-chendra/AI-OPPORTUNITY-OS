@@ -10,4 +10,8 @@ export const authApi = {
   login: (data: LoginData) => api.post<AuthResult>('/auth/login', data).then(r => r.data),
   logout: () => api.post('/auth/logout'),
   me: () => api.get<User>('/auth/me').then(r => r.data),
+  forgotPassword: (email: string) =>
+    api.post<{ message: string; reset_token?: string; reset_url?: string }>('/auth/forgot-password', { email }).then(r => r.data),
+  resetPassword: (data: { token: string; new_password: string }) =>
+    api.post<{ message: string }>('/auth/reset-password', data).then(r => r.data),
 }

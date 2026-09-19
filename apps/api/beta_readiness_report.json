@@ -1,0 +1,213 @@
+{
+  "timestamp": "2026-09-19T10:26:26.567583+00:00",
+  "external_fetches": [
+    {
+      "source": "World Bank Projects API",
+      "method": "GET",
+      "url": "https://search.worldbank.org/api/v2/projects?format=json&rows=10&source=IBRD&status=Active",
+      "request_timestamp": "2026-09-19T10:26:27.152762+00:00",
+      "status_code": 503,
+      "response_size_bytes": 591,
+      "records_received": 0,
+      "records_parsed": 0,
+      "sample_external_id": null,
+      "sample_title": null,
+      "sample_source_url": "https://projects.worldbank.org/en/projects-operations/project-detail/None",
+      "error": null
+    },
+    {
+      "source": "UK Contracts Finder (OCDS)",
+      "method": "GET",
+      "url": "https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search?publishedFrom=2024-01-01&size=10",
+      "request_timestamp": "2026-09-19T10:26:30.827643+00:00",
+      "status_code": 200,
+      "response_size_bytes": 559944,
+      "records_received": 100,
+      "records_parsed": 100,
+      "sample_external_id": "ocds-b5fd17-02f878ce-547b-46fd-a840-ddc7c37e1e80",
+      "sample_title": "Procurement of office and IT equipment",
+      "sample_source_url": "https://www.contractsfinder.service.gov.uk/Notice/76371b58-f056-4c76-80d6-f175126a0eaf-914731",
+      "error": null
+    },
+    {
+      "source": "USASpending.gov API",
+      "method": "POST",
+      "url": "https://api.usaspending.gov/api/v2/search/spending_by_award/",
+      "request_timestamp": "2026-09-19T10:26:33.383045+00:00",
+      "status_code": 200,
+      "response_size_bytes": 4037,
+      "records_received": 10,
+      "records_parsed": 10,
+      "sample_external_id": "CONT_AWD_ZSMG_9700_HTC71114DR027_9700",
+      "sample_title": "LEASE OF CONTAINERS FOR CONUS/OCONUS DELIVERY",
+      "sample_source_url": "https://www.usaspending.gov/award/CONT_AWD_ZSMG_9700_HTC71114DR027_9700",
+      "error": null
+    }
+  ],
+  "provenance_records": [
+    {
+      "opportunity_id": "a3763f70-6b44-4626-b8e1-0bde091a6f5e",
+      "external_id": "cur-res-3a40be66",
+      "title": "Advanced Composite Materials for High-Temperature Spacecraft",
+      "source_url": "https://isro.gov.in",
+      "category": "research",
+      "organization_name": "ISRO / RESPOND Programme",
+      "is_verified": true,
+      "deadline": "2026-10-16T08:25:43.751784",
+      "currency": "INR",
+      "value_display": "\u20b91.2 Cr",
+      "provenance_chain": [
+        "1. External Source: ISRO / RESPOND Programme",
+        "2. Ingestion Adapter: research adapter mapped external_id='cur-res-3a40be66'",
+        "3. DB Model: opportunities (id=a3763f70-6b44-4626-b8e1-0bde091a6f5e, is_verified=True)",
+        "4. API Output: GET /opportunities/a3763f70-6b44-4626-b8e1-0bde091a6f5e (status 200 OK)",
+        "5. UI Render: /radar/a3763f70-6b44-4626-b8e1-0bde091a6f5e (displays title, source link, match score)"
+      ]
+    },
+    {
+      "opportunity_id": "bc74cfe4-ba80-4ce4-afd4-bef5ecd31ffe",
+      "external_id": "cur-res-3c120fa0",
+      "title": "Autonomous Navigation & GNSS-Denied Positioning Fellowship",
+      "source_url": "https://iitb.ac.in",
+      "category": "research",
+      "organization_name": "IIT Bombay TiHAN Foundation",
+      "is_verified": true,
+      "deadline": "2026-10-18T08:25:43.751784",
+      "currency": "INR",
+      "value_display": "\u20b960 Lakh",
+      "provenance_chain": [
+        "1. External Source: IIT Bombay TiHAN Foundation",
+        "2. Ingestion Adapter: research adapter mapped external_id='cur-res-3c120fa0'",
+        "3. DB Model: opportunities (id=bc74cfe4-ba80-4ce4-afd4-bef5ecd31ffe, is_verified=True)",
+        "4. API Output: GET /opportunities/bc74cfe4-ba80-4ce4-afd4-bef5ecd31ffe (status 200 OK)",
+        "5. UI Render: /radar/bc74cfe4-ba80-4ce4-afd4-bef5ecd31ffe (displays title, source link, match score)"
+      ]
+    },
+    {
+      "opportunity_id": "b5c1cff6-81e8-427a-b9b4-d2a477f825af",
+      "external_id": "cur-res-ba384b6f",
+      "title": "Clean Hydrogen Generation & Catalytic Electrolyzer R&D Consortium",
+      "source_url": "https://mnre.gov.in",
+      "category": "research",
+      "organization_name": "Ministry of New & Renewable Energy (MNRE)",
+      "is_verified": true,
+      "deadline": "2026-10-18T08:25:43.751784",
+      "currency": "INR",
+      "value_display": "\u20b93.5 Cr",
+      "provenance_chain": [
+        "1. External Source: Ministry of New & Renewable Energy (MNRE)",
+        "2. Ingestion Adapter: research adapter mapped external_id='cur-res-ba384b6f'",
+        "3. DB Model: opportunities (id=b5c1cff6-81e8-427a-b9b4-d2a477f825af, is_verified=True)",
+        "4. API Output: GET /opportunities/b5c1cff6-81e8-427a-b9b4-d2a477f825af (status 200 OK)",
+        "5. UI Render: /radar/b5c1cff6-81e8-427a-b9b4-d2a477f825af (displays title, source link, match score)"
+      ]
+    }
+  ],
+  "user_journey": {
+    "user_email": "beta_founder_cc96ae@quantum-mesh.ai",
+    "organization_name": "Quantum Mesh Technologies",
+    "profile_persisted": true,
+    "completeness_score": 65,
+    "readiness_tier": "Significant Gaps",
+    "capabilities_count": 4,
+    "certifications_count": 3
+  },
+  "dna_differential": {
+    "company_a": {
+      "name": "Quantum Mesh Technologies",
+      "industry": "SaaS / Enterprise Software",
+      "top_ranked_opportunity": "MSME Digital Transformation & Green Transition Grant Q4",
+      "top_score": 89.4,
+      "top_5": [
+        "MSME Digital Transformation & Green Transition Grant Q4",
+        "DPIIT Seed Fund Innovation Challenge Round 8",
+        "Biotechnology Ignition Grant (BIG) Deep Tech Cohort",
+        "GeM Empanelment: IT Consulting & Systems Integration Services",
+        "GeM Bid: Cyber Security Solutions and SOC-as-a-Service"
+      ]
+    },
+    "company_b": {
+      "name": "Apex Civil & Infra Projects",
+      "industry": "Infrastructure & Construction",
+      "top_ranked_opportunity": "GeM Cloud Services Procurement \u2014 NIC MeghRaj Compliant Vendors",
+      "top_score": 87.0,
+      "top_5": [
+        "GeM Cloud Services Procurement \u2014 NIC MeghRaj Compliant Vendors",
+        "GeM Empanelment: Digital Skills & AI Training Programs for Government Staff",
+        "Consortium Co-Bidding: National Highway Optical Fiber Laying",
+        "Joint Venture Alliance: Smart Meter Advanced Metering Infrastructure (AMI)",
+        "National AI Compute Infrastructure & Cloud Hosting Tender"
+      ]
+    },
+    "rankings_differ": true
+  },
+  "dna_propagation": {
+    "versions_count": 2,
+    "latest_version": 2,
+    "version_diff": {
+      "certifications": {
+        "added": [
+          "ISO 27001 Security Management",
+          "CMMI Maturity Level 3+"
+        ]
+      },
+      "preferred_contract_max": {
+        "from": 25000000.0,
+        "to": 100000000.0
+      }
+    },
+    "re_evaluated_count": 198,
+    "newly_eligible_count": 12,
+    "impact_summary": {
+      "re_evaluated": 198,
+      "score_improved": 181,
+      "score_decreased": 0,
+      "newly_eligible": 12,
+      "high_relevance_count": 181,
+      "timestamp": "2026-09-19T10:26:35.224022+00:00",
+      "trigger_reason": "Added ISO 27001 & CMMI Level 3+ certifications"
+    }
+  },
+  "whitespace_provenance": {
+    "total_uncontested_count": 42,
+    "total_adjacent_count": 122,
+    "underserved_buyers_count": 5,
+    "sample_uncontested": [
+      "National AI Compute Infrastructure & Cloud Hosting Tender",
+      "Lease Of Containers For Conus/Oconus Delivery",
+      "Hpelite Desktop Pc Accessories, And Hp Monitor Ffp Chess Order"
+    ],
+    "sample_adjacent": [
+      "GeM Empanelment \u2014 Cloud Consulting & DevOps Roster",
+      "Global Cloud Migration & Enterprise ERP Modernization RFP",
+      "World Bank South Asia Digital Infrastructure & Health Interoperability"
+    ],
+    "sample_buyers": [
+      "World Bank Group",
+      "Suffolk County Council Passenger Transport",
+      "East Sussex County Council"
+    ],
+    "query_verified": true
+  },
+  "rbac_audit": {
+    "roles_configured": [
+      "owner",
+      "admin",
+      "manager",
+      "analyst",
+      "member",
+      "viewer"
+    ],
+    "viewer_role_created": "viewer_52a4f6@quantum-mesh.ai",
+    "mutations_protected_by_require_roles": true
+  },
+  "tenant_isolation": {
+    "tenant_a": "22ca3209-5bad-4123-a4c6-1a67d9df33b1",
+    "tenant_b": "be0fde2f-8871-4b61-ab17-ddedcb468f4f",
+    "tenant_b_cannot_see_tenant_a_apps": true,
+    "tenant_b_cannot_see_tenant_a_docs": true,
+    "tenant_b_cannot_see_tenant_a_profile": true,
+    "isolation_enforced_at_sql_layer": true
+  },
+  "scores_audit": {}
+}

@@ -17,7 +17,10 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.full_name.trim()) return setError('Full name is required')
+    if (!formData.organization_name.trim()) return setError('Organization name is required')
     if (formData.password !== formData.confirm_password) return setError('Passwords do not match')
+    if (formData.password.length < 8) return setError('Password must be at least 8 characters')
     setLoading(true)
     setError('')
     try {
@@ -34,7 +37,12 @@ export default function SignupPage() {
       }
       router.push('/onboard')
     } catch (err: any) {
-      setError(err.message || 'Signup failed')
+      const detail = err.response?.data?.detail
+      if (err.response?.status === 400 && detail?.toLowerCase().includes('email')) {
+        setError('__email_exists__')
+      } else {
+        setError(detail || err.message || 'Signup failed. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
@@ -64,13 +72,42 @@ export default function SignupPage() {
             <Input label="Email" type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
             <Input label="Password" type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
             <Input label="Confirm Password" type="password" value={formData.confirm_password} onChange={e => setFormData({...formData, confirm_password: e.target.value})} required />
-            {error && <div className="text-red-500 text-sm">{error}</div>}
+            {error === '__email_exists__' ? (
+              <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-sm space-y-3 animate-in fade-in duration-200">
+                <div className="font-semibold flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
+                  Account already exists
+                </div>
+                <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                  An account is already registered with <strong>{formData.email}</strong>. You don't need to create a new one.
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Link
+                    href={`/login?email=${encodeURIComponent(formData.email)}`}
+                    className="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-600 text-white font-medium text-xs hover:bg-blue-500 transition-colors shadow-sm"
+                  >
+                    Sign In to Your Account
+                  </Link>
+                  <Link
+                    href={`/forgot-password?email=${encodeURIComponent(formData.email)}`}
+                    className="inline-flex items-center px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--card-bg)] text-[var(--text-1)] font-medium text-xs hover:bg-[var(--hover-bg)] transition-colors"
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="p-3 text-sm rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+                {error}
+              </div>
+            ) : null}
             <Button type="submit" className="w-full mt-4" disabled={loading}>
               {loading ? 'Creating account...' : 'Sign Up'}
             </Button>
           </form>
-          <div className="text-center text-sm text-[var(--text-2)]">
-            Already have an account? <Link href="/login" className="text-blue-500 hover:underline">Sign in</Link>
+          <div className="flex items-center justify-between text-sm text-[var(--text-2)] pt-2 border-t border-[var(--border)]">
+            <span>Already have an account? <Link href="/login" className="text-blue-500 hover:underline font-medium">Sign in</Link></span>
+            <Link href="/forgot-password" className="text-xs text-[var(--text-3)] hover:text-blue-500 hover:underline">Forgot password?</Link>
           </div>
         </div>
       </div>

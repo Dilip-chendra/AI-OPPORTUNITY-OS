@@ -7,7 +7,8 @@ from app.models import *  # Import all models to register with metadata
 from app.routers import (
     auth, opportunities, business_profile, search, alerts,
     analytics, ai, applications, admin, health,
-    evidence_vault, lifecycle, bid_decision, requirement_shredder
+    evidence_vault, lifecycle, bid_decision, requirement_shredder,
+    intelligence
 )
 
 @asynccontextmanager
@@ -126,6 +127,7 @@ app.include_router(evidence_vault.router, prefix='/evidence', tags=['evidence-va
 app.include_router(lifecycle.router, prefix='/lifecycle', tags=['lifecycle'])
 app.include_router(bid_decision.router, prefix='/bid-decision', tags=['bid-decision'])
 app.include_router(requirement_shredder.router, prefix='/shredder', tags=['requirement-shredder'])
+app.include_router(intelligence.router, prefix='/intelligence', tags=['intelligence'])
 
 # Legacy compat route
 app.add_api_route('/recommendations', opportunities.get_recommendations, methods=['GET'], tags=['opportunities'])

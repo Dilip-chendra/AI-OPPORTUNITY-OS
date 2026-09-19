@@ -54,14 +54,32 @@ class IngestionService:
         'partnerships': [
             {'title': 'Consortium Co-Bidding: National Highway Optical Fiber Laying', 'org': 'L&T Construction (Prime)', 'val': 95000000, 'type': 'tender', 'loc': ('India', 'Maharashtra', 'Mumbai'), 'cur': 'INR', 'url': 'https://lntecc.com/partnerships'},
             {'title': 'Defense Electronics Sub-Contractor Alliance Call', 'org': 'Bharat Electronics Limited (BEL)', 'val': 40000000, 'type': 'tender', 'loc': ('India', 'Karnataka', 'Bengaluru'), 'cur': 'INR', 'url': 'https://bel-india.in/tenders'},
+            {'title': 'Joint Venture Alliance: Smart Meter Advanced Metering Infrastructure (AMI)', 'org': 'Tata Power SED / JV Cell', 'val': 85000000, 'type': 'tender', 'loc': ('India', 'Maharashtra', 'Mumbai'), 'cur': 'INR', 'url': 'https://tatapower.com/procurement'},
+            {'title': 'Sub-Contracting Co-Bid: Metro Signaling & Automated Train Supervision (ATS)', 'org': 'Alstom Transport India (Prime)', 'val': 120000000, 'type': 'tender', 'loc': ('India', 'Karnataka', 'Bengaluru'), 'cur': 'INR', 'url': 'https://alstom.com/india'},
+            {'title': 'Consortium RFP: State Police Surveillance & CCTV Command Center System Integrator', 'org': 'Telecommunications Consultants India (TCIL)', 'val': 65000000, 'type': 'rfp', 'loc': ('India', 'Delhi', 'New Delhi'), 'cur': 'INR', 'url': 'https://tcil.net.in'},
+            {'title': 'Strategic SI Partnership: Enterprise AI Automation for Public Sector Banking', 'org': 'State Bank of India IT / Partner Ecosystem', 'val': 50000000, 'type': 'rfp', 'loc': ('India', 'Maharashtra', 'Mumbai'), 'cur': 'INR', 'url': 'https://sbi.co.in/procurement'},
+            {'title': 'Prime Contractor Teaming: BharatNet Phase-3 Rural Broadband Maintenance', 'org': 'RailTel Corporation of India', 'val': 75000000, 'type': 'tender', 'loc': ('India', 'Delhi', 'New Delhi'), 'cur': 'INR', 'url': 'https://railtelindia.com'},
+            {'title': 'Aerospace Component Manufacturing Co-Bidding Call', 'org': 'Hindustan Aeronautics Limited (HAL)', 'val': 110000000, 'type': 'tender', 'loc': ('India', 'Karnataka', 'Bengaluru'), 'cur': 'INR', 'url': 'https://hal-india.co.in'},
+            {'title': 'Consortium Opportunity: Digital Court & E-Filing Platform Overhaul', 'org': 'National Informatics Centre Services Inc (NICSI)', 'val': 48000000, 'type': 'tender', 'loc': ('India', 'Delhi', 'New Delhi'), 'cur': 'INR', 'url': 'https://nicsi.com'},
+            {'title': 'Offshore Wind Farm SCADA & Telemetry Sub-System Co-Bid', 'org': 'NTPC Renewable Energy Limited', 'val': 90000000, 'type': 'tender', 'loc': ('India', 'Gujarat', 'Ahmedabad'), 'cur': 'INR', 'url': 'https://ntpc.co.in'},
         ],
         'innovation': [
             {'title': 'Smart Mobility & EV Telemetry Grand Challenge', 'org': 'NITI Aayog / Atal Innovation Mission', 'val': 5000000, 'type': 'challenge', 'loc': ('India', 'Delhi', 'New Delhi'), 'cur': 'INR', 'url': 'https://aim.gov.in/challenges'},
             {'title': 'Autonomous Drone Surveillance for Agricultural Yield', 'org': 'ICAR / Dept of Agriculture', 'val': 7500000, 'type': 'challenge', 'loc': ('India', 'Delhi', 'New Delhi'), 'cur': 'INR', 'url': 'https://icar.org.in'},
+            {'title': 'RBI Innovation Hub: AI Financial Inclusion & Fraud Prevention Hackathon', 'org': 'Reserve Bank Innovation Hub (RBIH)', 'val': 5000000, 'type': 'challenge', 'loc': ('India', 'Karnataka', 'Bengaluru'), 'cur': 'INR', 'url': 'https://rbihub.in'},
+            {'title': 'DRDO Dare to Dream 5.0 Innovation Contest: Unmanned Airborne Countermeasures', 'org': 'DRDO / Ministry of Defence', 'val': 10000000, 'type': 'challenge', 'loc': ('India', 'Delhi', 'New Delhi'), 'cur': 'INR', 'url': 'https://drdo.gov.in'},
+            {'title': 'Clean Urban Mobility Challenge: Battery Swapping Protocol Standardization', 'org': 'Ministry of Road Transport and Highways (MoRTH)', 'val': 6000000, 'type': 'challenge', 'loc': ('India', 'Delhi', 'New Delhi'), 'cur': 'INR', 'url': 'https://morth.nic.in'},
+            {'title': 'National Water Mission: Decentralized Desalination & Purification Challenge', 'org': 'Ministry of Jal Shakti', 'val': 8000000, 'type': 'challenge', 'loc': ('India', 'Delhi', 'New Delhi'), 'cur': 'INR', 'url': 'https://jalshakti.gov.in'},
+            {'title': 'Smart Industrial Safety: Edge AI Computer Vision Prototype Call', 'org': 'Steel Authority of India (SAIL)', 'val': 4500000, 'type': 'challenge', 'loc': ('India', 'Jharkhand', 'Ranchi'), 'cur': 'INR', 'url': 'https://sail.co.in'},
         ],
         'research': [
             {'title': 'Quantum Computing Algorithm Commercialization Grant', 'org': 'Dept of Science and Technology (DST)', 'val': 15000000, 'type': 'grant', 'loc': ('India', 'Delhi', 'New Delhi'), 'cur': 'INR', 'url': 'https://dst.gov.in'},
             {'title': 'Deep-Tech Industry Collaborative R&D Program', 'org': 'IIT Madras Research Park', 'val': 3000000, 'type': 'grant', 'loc': ('India', 'Tamil Nadu', 'Chennai'), 'cur': 'INR', 'url': 'https://respark.iitm.ac.in'},
+            {'title': 'Semiconductor Design & IP Core Translation Program', 'org': 'India Semiconductor Mission (ISM)', 'val': 25000000, 'type': 'grant', 'loc': ('India', 'Delhi', 'New Delhi'), 'cur': 'INR', 'url': 'https://ism.gov.in'},
+            {'title': 'Translational Biotechnology & Vaccine Adjuvant Research Facility Call', 'org': 'Biotechnology Industry Research Assistance Council (BIRAC)', 'val': 18000000, 'type': 'grant', 'loc': ('India', 'Delhi', 'New Delhi'), 'cur': 'INR', 'url': 'https://birac.nic.in'},
+            {'title': 'Clean Hydrogen Generation & Catalytic Electrolyzer R&D Consortium', 'org': 'Ministry of New & Renewable Energy (MNRE)', 'val': 35000000, 'type': 'grant', 'loc': ('India', 'Delhi', 'New Delhi'), 'cur': 'INR', 'url': 'https://mnre.gov.in'},
+            {'title': 'Autonomous Navigation & GNSS-Denied Positioning Fellowship', 'org': 'IIT Bombay TiHAN Foundation', 'val': 6000000, 'type': 'grant', 'loc': ('India', 'Maharashtra', 'Mumbai'), 'cur': 'INR', 'url': 'https://iitb.ac.in'},
+            {'title': 'Advanced Composite Materials for High-Temperature Spacecraft', 'org': 'ISRO / RESPOND Programme', 'val': 12000000, 'type': 'grant', 'loc': ('India', 'Karnataka', 'Bengaluru'), 'cur': 'INR', 'url': 'https://isro.gov.in'},
         ]
     }
 

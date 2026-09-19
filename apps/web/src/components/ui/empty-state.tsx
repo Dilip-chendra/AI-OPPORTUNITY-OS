@@ -3,12 +3,12 @@ import { Button } from './button'
 import { Bookmark, FileText, Bell, BarChart3, Search, Zap } from 'lucide-react'
 
 const PRESETS = {
-  'no-opportunities': { icon: <Zap className="h-8 w-8" />, title: 'No opportunities found', description: 'Try adjusting your filters or search terms.' },
-  'no-saved': { icon: <Bookmark className="h-8 w-8" />, title: 'No saved opportunities', description: 'Save opportunities you want to revisit or pursue later.' },
-  'no-applications': { icon: <FileText className="h-8 w-8" />, title: 'No applications yet', description: 'Pursue an opportunity to create your first application.' },
-  'no-alerts': { icon: <Bell className="h-8 w-8" />, title: 'No alerts', description: 'You are all caught up! New alerts will appear here.' },
-  'no-analytics': { icon: <BarChart3 className="h-8 w-8" />, title: 'No data yet', description: 'Analytics will populate as you explore and pursue opportunities.' },
-  'no-results': { icon: <Search className="h-8 w-8" />, title: 'No results found', description: 'Try a different search query or clear your filters.' },
+  'no-opportunities': { icon: <Zap className="h-8 w-8" />, title: 'No opportunities match your filters', description: 'Try adjusting your search terms or clearing active filters.' },
+  'no-saved': { icon: <Bookmark className="h-8 w-8" />, title: 'No saved opportunities yet', description: 'Save opportunities you want to revisit or evaluate with your team.' },
+  'no-applications': { icon: <FileText className="h-8 w-8" />, title: 'No active pursuits yet', description: 'Click Pursue on an opportunity to launch an execution workspace.' },
+  'no-alerts': { icon: <Bell className="h-8 w-8" />, title: 'No alerts', description: 'You are all caught up! Deadline and corrigendum alerts will appear here.' },
+  'no-analytics': { icon: <BarChart3 className="h-8 w-8" />, title: 'No pipeline data yet', description: 'Pipeline analytics will populate as you save and pursue opportunities.' },
+  'no-results': { icon: <Search className="h-8 w-8" />, title: 'No matching records found', description: 'Try a different search query or broaden filter parameters.' },
 }
 
 interface EmptyStateProps {

@@ -11,9 +11,10 @@ import { getRoleBadgeConfig } from '@/lib/permissions'
 interface TopNavProps {
   sidebarCollapsed?: boolean
   alertCount?: number
+  onOpenSearch?: () => void
 }
 
-export function TopNav({ sidebarCollapsed, alertCount = 0 }: TopNavProps) {
+export function TopNav({ sidebarCollapsed, alertCount = 0, onOpenSearch }: TopNavProps) {
   const { theme, setTheme } = useTheme()
   const { user, logout } = useAuth()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -34,6 +35,7 @@ export function TopNav({ sidebarCollapsed, alertCount = 0 }: TopNavProps) {
       {/* Search */}
       <div className="flex-1 max-w-md">
         <div
+          onClick={onOpenSearch}
           className={cn(
             'flex items-center gap-2 px-3 h-8 rounded-lg border text-sm cursor-pointer transition-colors',
             'border-[var(--border)] hover:border-blue-500/50',
@@ -41,9 +43,9 @@ export function TopNav({ sidebarCollapsed, alertCount = 0 }: TopNavProps) {
           style={{ color: 'var(--text-3)', background: 'var(--bg)' }}
         >
           <Search className="h-3.5 w-3.5 shrink-0" />
-          <span className="flex-1">Search opportunities...</span>
-          <kbd className="hidden sm:flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-[var(--border)]">
-            ⌘K
+          <span className="flex-1">Search opportunities & commands...</span>
+          <kbd className="hidden sm:flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-[var(--border)] font-mono">
+            Ctrl+K
           </kbd>
         </div>
       </div>

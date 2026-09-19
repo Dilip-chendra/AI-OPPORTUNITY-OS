@@ -14,8 +14,8 @@ export default function CategoryPage() {
   const [page, setPage] = useState(1)
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['opportunities', 'partnership', page, search],
-    queryFn: () => opportunitiesApi.list({ category: 'partnership', page, page_size: 12, search: search || undefined }),
+    queryKey: ['opportunities', 'partnerships', page, search],
+    queryFn: () => opportunitiesApi.list({ category: 'partnerships', page, page_size: 12, search: search || undefined }),
   })
 
   return (

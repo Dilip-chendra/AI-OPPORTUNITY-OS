@@ -264,3 +264,211 @@ export interface MessageResponse {
   message: string;
   success: boolean;
 }
+
+// --- Intelligence & Business DNA Central System Types ---
+
+export interface MissingDNAItem {
+  section: string;
+  field: string;
+  weight_points: number;
+  why_it_matters: string;
+}
+
+export interface CompletenessResult {
+  score: number;
+  is_complete: boolean;
+  passed_count: number;
+  total_checks: number;
+  missing_items: MissingDNAItem[];
+}
+
+export interface ReadinessResult {
+  score: number;
+  tier: string;
+  critical_missing: string[];
+  recommendations: string[];
+}
+
+export interface DNAImpact {
+  re_evaluated: number;
+  score_improved: number;
+  newly_eligible: number;
+  high_relevance_count: number;
+  summary: string;
+}
+
+export interface BusinessProfileVersion {
+  id: string;
+  organization_id: string;
+  version: number;
+  changed_fields?: string[];
+  diff?: Record<string, { old: any; new: any }>;
+  changed_by?: string;
+  reason?: string;
+  impact_summary?: DNAImpact;
+  created_at: string;
+}
+
+export interface BusinessContext extends Partial<BusinessProfile> {
+  organization_id: string;
+  version: number;
+  last_updated?: string;
+  completeness: CompletenessResult;
+  readiness: ReadinessResult;
+}
+
+export interface LifecycleEvent {
+  stage: string;
+  title: string;
+  date: string;
+  status: 'completed' | 'active' | 'pending' | 'forecast';
+  description: string;
+  document_type?: string;
+  is_milestone: boolean;
+}
+
+export interface OpportunityThread {
+  opportunity_id: string;
+  thread_id: string;
+  title: string;
+  buyer_name: string;
+  category: string;
+  current_stage: string;
+  published_at?: string;
+  deadline?: string;
+  value_display?: string;
+  lifecycle_events: LifecycleEvent[];
+  recompete_indicators?: {
+    contract_duration_months: number;
+    recompete_expected_date: string;
+    incumbent_landscape: string;
+    historical_renewal_rate: string;
+    key_qualification_hurdle: string;
+  };
+  related_thread_notices?: Array<{
+    id: string;
+    title: string;
+    category: string;
+    deadline?: string;
+    value_display?: string;
+  }>;
+}
+
+export interface Buyer360 {
+  buyer_name: string;
+  total_opportunities: number;
+  active_opportunities_count: number;
+  total_estimated_spend_inr: number;
+  average_tender_value_inr: number;
+  procurement_velocity: string;
+  average_bid_window_days: number;
+  top_categories: Record<string, number>;
+  top_technology_requirements: string[];
+  compliance_profile: {
+    msme_friendly: boolean;
+    requires_iso: boolean;
+    empanelment_rate: string;
+  };
+  organization_fit: {
+    overall_fit_score: number;
+    tier: string;
+    rationale: string;
+  };
+  active_opportunities: Array<{
+    id: string;
+    title: string;
+    category: string;
+    deadline?: string;
+    value_display?: string;
+  }>;
+}
+
+export interface WhitespaceResult {
+  company_name: string;
+  uncontested_opportunities: Array<{
+    id: string;
+    title: string;
+    organization_name: string;
+    category: string;
+    value_display: string;
+    deadline?: string;
+    matching_capabilities: string[];
+    whitespace_reason: string;
+  }>;
+  total_uncontested_count: number;
+  adjacent_opportunities: Array<{
+    id: string;
+    title: string;
+    organization_name: string;
+    category: string;
+    value_display: string;
+    missing_credential: string;
+    unlock_strategy: string;
+  }>;
+  total_adjacent_count: number;
+  underserved_buyers: Array<{
+    buyer_name: string;
+    open_tenders_count: number;
+    strategic_recommendation: string;
+  }>;
+  strategic_summary: {
+    primary_growth_vector: string;
+    readiness_unlock: string;
+  };
+}
+
+export interface WorkQueueItem {
+  id: string;
+  type: string;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  title: string;
+  description: string;
+  due_date: string;
+  action_label: string;
+  action_url: string;
+}
+
+export interface WorkQueueResult {
+  total_items: number;
+  critical_count: number;
+  high_count: number;
+  items: WorkQueueItem[];
+}
+
+export interface SimulationScenario {
+  opportunity_id: string;
+  add_certifications?: string[];
+  add_capabilities?: string[];
+  partner_oem?: boolean;
+  consortium?: boolean;
+  turnover_override?: number;
+}
+
+export interface SimulationResult {
+  opportunity_id: string;
+  opportunity_title: string;
+  baseline: {
+    overall_score: number;
+    eligibility_score: number;
+    capability_fit_score: number;
+    value_fit_score: number;
+    recommendation: string;
+    win_probability_pct: number;
+  };
+  simulated: {
+    overall_score: number;
+    eligibility_score: number;
+    capability_fit_score: number;
+    value_fit_score: number;
+    recommendation: string;
+    win_probability_pct: number;
+  };
+  delta: {
+    score_improvement: number;
+    win_probability_gain_pct: number;
+    status: string;
+  };
+  resolved_blockers: string[];
+  strategic_recommendation: string;
+}
+

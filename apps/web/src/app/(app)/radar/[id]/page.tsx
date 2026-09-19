@@ -1,21 +1,28 @@
 'use client'
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { opportunitiesApi } from '@/lib/api/opportunities'
+import { intelligenceApi } from '@/lib/api/intelligence'
+import { applicationsApi } from '@/lib/api/applications'
+import { useAuth } from '@/lib/hooks/use-auth'
+import { RolePermissions } from '@/lib/permissions'
 import { ScoreRing } from '@/components/ui/score-ring'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
 import { ErrorState } from '@/components/ui/error-state'
 import { formatCurrency, formatDeadline, cn } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Bookmark, ExternalLink, ArrowLeft, Shield, AlertTriangle, Clock, MapPin, CheckCircle2, XCircle, AlertCircle, Sparkles, FileText, Send } from 'lucide-react'
+import { 
+  Bookmark, ExternalLink, ArrowLeft, Shield, AlertTriangle, Clock, MapPin, 
+  CheckCircle2, XCircle, AlertCircle, Sparkles, FileText, Send,
+  GitCommit, Building2, Sliders, Calendar, TrendingUp, Layers, Check, Play
+} from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-
-import { useState } from 'react'
-import { applicationsApi } from '@/lib/api/applications'
-import { useAuth } from '@/lib/hooks/use-auth'
-import { RolePermissions } from '@/lib/permissions'
+import type { SimulationResult } from '@/types'
 
 export default function OpportunityDetailPage() {
   const params = useParams()
@@ -26,6 +33,13 @@ export default function OpportunityDetailPage() {
   const [pursuing, setPursuing] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // Simulator state
+  const [simConsortium, setSimConsortium] = useState(false)
+  const [simPartnerOem, setSimPartnerOem] = useState(false)
+  const [simCerts, setSimCerts] = useState<string[]>(['ISO 27001'])
+  const [simTurnover, setSimTurnover] = useState('')
+  const [simResult, setSimResult] = useState<SimulationResult | null>(null)
 
   const canPursue = RolePermissions.canCreateApplication(user?.role)
   const canSave = RolePermissions.canSaveOpportunity(user?.role)
@@ -42,6 +56,31 @@ export default function OpportunityDetailPage() {
     enabled: !!id && !!opp,
     staleTime: 10 * 60 * 1000,
     retry: false,
+  })
+
+  const { data: threadData, isLoading: threadLoading } = useQuery({
+    queryKey: ['opportunity-thread', id],
+    queryFn: () => intelligenceApi.getThread(id),
+    enabled: !!id && !!opp,
+  })
+
+  const { data: buyerData, isLoading: buyerLoading } = useQuery({
+    queryKey: ['buyer-360', opp?.organization_name],
+    queryFn: () => intelligenceApi.getBuyer360(opp?.organization_name || ''),
+    enabled: !!opp?.organization_name,
+  })
+
+  const simMutation = useMutation({
+    mutationFn: () => intelligenceApi.simulate({
+      opportunity_id: id,
+      add_certifications: simCerts,
+      partner_oem: simPartnerOem,
+      consortium: simConsortium,
+      turnover_override: simTurnover ? parseFloat(simTurnover) : undefined
+    }),
+    onSuccess: (data) => {
+      setSimResult(data)
+    }
   })
 
   const handlePursue = async () => {
@@ -204,11 +243,20 @@ export default function OpportunityDetailPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex flex-wrap gap-1">
           <TabsTrigger value="overview">Executive Overview</TabsTrigger>
           <TabsTrigger value="eligibility">Eligibility & Criteria</TabsTrigger>
           <TabsTrigger value="score">8-Dimension AI Score</TabsTrigger>
           <TabsTrigger value="why">Why This Matches</TabsTrigger>
+          <TabsTrigger value="thread" className="flex items-center gap-1.5">
+            <GitCommit className="h-3.5 w-3.5" /> Thread & Recompete
+          </TabsTrigger>
+          <TabsTrigger value="buyer" className="flex items-center gap-1.5">
+            <Building2 className="h-3.5 w-3.5" /> Buyer 360
+          </TabsTrigger>
+          <TabsTrigger value="simulator" className="flex items-center gap-1.5 text-blue-500">
+            <Sliders className="h-3.5 w-3.5" /> Simulator
+          </TabsTrigger>
           <TabsTrigger value="checklist">Required Documents</TabsTrigger>
         </TabsList>
 
@@ -421,6 +469,337 @@ export default function OpportunityDetailPage() {
                   </p>
                 )
               }
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB: THREAD & RECOMPETE */}
+        <TabsContent value="thread">
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-[var(--text-1)] flex items-center gap-2">
+                    <GitCommit className="h-4 w-4 text-blue-500" />
+                    Full Procurement Thread Lifecycle
+                  </h3>
+                  <p className="text-xs text-[var(--text-2)] mt-1">
+                    Traces the opportunity from early budget signals through RFI, active tender window, evaluation, and future recompete cycle.
+                  </p>
+                </div>
+                <span className="font-mono text-xs px-2.5 py-1 rounded-full uppercase font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  Current: {threadData?.current_stage || 'Active Submission'}
+                </span>
+              </div>
+
+              {/* Visual Timeline */}
+              <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[var(--border)]">
+                {threadData?.lifecycle_events?.map((ev, idx) => (
+                  <div key={idx} className="relative group">
+                    {/* Stage dot */}
+                    <div className={cn(
+                      "absolute -left-6 top-1 h-4 w-4 rounded-full border-2 bg-[var(--surface)] flex items-center justify-center transition-all",
+                      ev.status === 'completed' ? 'border-emerald-500 bg-emerald-500/20' :
+                      ev.status === 'active' ? 'border-blue-500 bg-blue-500 animate-pulse' :
+                      ev.status === 'forecast' ? 'border-purple-500 bg-purple-500/20' :
+                      'border-[var(--border)] bg-[var(--surface)]'
+                    )}>
+                      {ev.status === 'completed' && <Check className="h-2.5 w-2.5 text-emerald-400" />}
+                    </div>
+
+                    <div className="bg-[var(--bg)] p-4 rounded-xl border border-[var(--border)] space-y-1.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-[var(--text-1)]">{ev.title}</span>
+                          {ev.is_milestone && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                              Milestone
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {ev.document_type && (
+                            <span className="text-[11px] font-mono text-[var(--text-3)]">
+                              Doc: {ev.document_type}
+                            </span>
+                          )}
+                          <span className="text-xs font-mono font-semibold text-[var(--text-2)] bg-[var(--surface)] px-2 py-0.5 rounded border border-[var(--border)]">
+                            {ev.date}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-[var(--text-2)] leading-relaxed">
+                        {ev.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Recompete Horizon Intelligence */}
+              {threadData?.recompete_indicators && (
+                <div className="p-4 rounded-xl border border-purple-500/30 bg-purple-500/5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-purple-400" />
+                    <h4 className="text-sm font-bold text-[var(--text-1)]">
+                      Recompete & Contract Renewal Horizon
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="bg-[var(--surface)] p-3 rounded-lg border border-[var(--border)]">
+                      <span className="text-[var(--text-3)] block text-[10px] uppercase font-bold">Standard Term</span>
+                      <span className="text-sm font-bold text-[var(--text-1)]">{threadData.recompete_indicators.contract_duration_months} Months</span>
+                    </div>
+                    <div className="bg-[var(--surface)] p-3 rounded-lg border border-[var(--border)]">
+                      <span className="text-[var(--text-3)] block text-[10px] uppercase font-bold">Expected Recompete</span>
+                      <span className="text-sm font-bold text-purple-400 font-mono">{threadData.recompete_indicators.recompete_expected_date}</span>
+                    </div>
+                    <div className="bg-[var(--surface)] p-3 rounded-lg border border-[var(--border)]">
+                      <span className="text-[var(--text-3)] block text-[10px] uppercase font-bold">Historical Renewal Rate</span>
+                      <span className="text-sm font-bold text-emerald-400">{threadData.recompete_indicators.historical_renewal_rate}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-[var(--text-2)]">
+                    <strong className="text-[var(--text-1)]">Incumbent Landscape: </strong>
+                    {threadData.recompete_indicators.incumbent_landscape}. {threadData.recompete_indicators.key_qualification_hurdle}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB: BUYER 360 */}
+        <TabsContent value="buyer">
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-[var(--text-1)] flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-blue-500" />
+                    Buyer 360: {opp.organization_name}
+                  </h3>
+                  <p className="text-xs text-[var(--text-2)] mt-1">
+                    Comprehensive procurement intelligence, annual spend patterns, and institutional affinity.
+                  </p>
+                </div>
+                {buyerData?.organization_fit && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[var(--text-3)] font-semibold">DNA Affinity:</span>
+                    <span className="text-sm font-bold font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      {buyerData.organization_fit.overall_fit_score}% Fit
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Metrics Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--bg)]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-3)] block mb-1">Total Catalog Tenders</span>
+                  <p className="text-xl font-extrabold font-mono text-[var(--text-1)]">{buyerData?.total_opportunities ?? 1}</p>
+                  <p className="text-[10px] text-[var(--text-2)] mt-0.5">{buyerData?.active_opportunities_count ?? 1} currently active</p>
+                </div>
+                <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--bg)]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-3)] block mb-1">Procurement Cadence</span>
+                  <p className="text-sm font-bold text-blue-400">{buyerData?.procurement_velocity || 'Regular Cycles'}</p>
+                  <p className="text-[10px] text-[var(--text-2)] mt-0.5">~{buyerData?.average_bid_window_days || 21} days bid window</p>
+                </div>
+                <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--bg)]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-3)] block mb-1">Estimated Annual Spend</span>
+                  <p className="text-base font-bold font-mono text-emerald-400">
+                    {buyerData?.total_estimated_spend_inr && buyerData.total_estimated_spend_inr > 0
+                      ? formatCurrency(buyerData.total_estimated_spend_inr)
+                      : '₹ 25+ Cr'}
+                  </p>
+                  <p className="text-[10px] text-[var(--text-2)] mt-0.5">average size: {buyerData?.average_tender_value_inr ? formatCurrency(buyerData.average_tender_value_inr) : 'Variable'}</p>
+                </div>
+                <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--bg)]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-3)] block mb-1">Affinity Tier</span>
+                  <p className="text-sm font-bold text-[var(--text-1)]">{buyerData?.organization_fit?.tier || 'Compatible Buyer'}</p>
+                  <p className="text-[10px] text-[var(--text-2)] mt-0.5">based on verified capabilities</p>
+                </div>
+              </div>
+
+              {/* Technologies & Compliance */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg)] space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-2)]">
+                    Preferred Technologies & Skills
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(buyerData?.top_technology_requirements && buyerData.top_technology_requirements.length > 0) ? (
+                      buyerData.top_technology_requirements.map((tech, i) => (
+                        <span key={i} className="text-xs px-2.5 py-1 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-1)] font-medium">
+                          {tech}
+                        </span>
+                      ))
+                    ) : (
+                      opp.technology_tags?.map((t: string, i: number) => (
+                        <span key={i} className="text-xs px-2.5 py-1 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-1)] font-medium">
+                          {t}
+                        </span>
+                      )) || <span className="text-xs text-[var(--text-3)]">Enterprise IT Architecture</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg)] space-y-2.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-2)]">
+                    Compliance & Stringency Profile
+                  </h4>
+                  <div className="space-y-1.5 text-xs text-[var(--text-2)]">
+                    <div className="flex items-center justify-between">
+                      <span>MSME / Startup Preference</span>
+                      <span className="text-emerald-400 font-semibold">Active Policy Applied</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>ISO Certification Mandatory</span>
+                      <span className="text-amber-400 font-semibold">80%+ of tenders</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Empanelment Requirement</span>
+                      <span className="text-[var(--text-1)]">{buyerData?.compliance_profile?.empanelment_rate || '35% require prior empanelment'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB: OPPORTUNITY SIMULATOR */}
+        <TabsContent value="simulator">
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] space-y-6">
+              <div className="border-b border-[var(--border)] pb-4">
+                <div className="flex items-center gap-2">
+                  <Sliders className="h-5 w-5 text-blue-500" />
+                  <h3 className="text-base font-bold text-[var(--text-1)]">
+                    Opportunity Simulator: What would make this pursuable?
+                  </h3>
+                </div>
+                <p className="text-xs text-[var(--text-2)] mt-1">
+                  Model scenario adjustments to see how teaming, certifications, or capacity modifications impact your algorithmic score and win probability.
+                </p>
+              </div>
+
+              {/* Scenario Builder Form */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-3)]">
+                    Scenario Adjustments
+                  </h4>
+
+                  <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--bg)] flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-[var(--text-1)]">Form Consortium / Joint Venture</p>
+                      <p className="text-[11px] text-[var(--text-3)]">Combines financial turnover & technical manpower</p>
+                    </div>
+                    <Switch checked={simConsortium} onChange={setSimConsortium} />
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--bg)] flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-[var(--text-1)]">OEM Authorized Tier-1 Partnership</p>
+                      <p className="text-[11px] text-[var(--text-3)]">Satisfies OEM authorization letters & warranties</p>
+                    </div>
+                    <Switch checked={simPartnerOem} onChange={setSimPartnerOem} />
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-[var(--border)] bg-[var(--bg)] space-y-2">
+                    <p className="text-xs font-semibold text-[var(--text-1)]">Simulate Additional Certifications</p>
+                    <div className="flex flex-wrap gap-2">
+                      {['ISO 27001', 'CMMI Level 3', 'SOC 2 Type II', 'GeM Primary Seller'].map((cert) => {
+                        const selected = simCerts.includes(cert)
+                        return (
+                          <button
+                            key={cert}
+                            onClick={() => setSimCerts(selected ? simCerts.filter(c => c !== cert) : [...simCerts, cert])}
+                            className={cn(
+                              "text-xs px-2.5 py-1 rounded-lg border font-medium transition-colors",
+                              selected
+                                ? "bg-blue-500/20 text-blue-400 border-blue-500/40"
+                                : "bg-[var(--surface)] text-[var(--text-2)] border-[var(--border)] hover:border-blue-500/30"
+                            )}
+                          >
+                            {selected ? `✓ ${cert}` : `+ ${cert}`}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <Button
+                    size="md"
+                    className="w-full"
+                    leftIcon={<Play className="h-4 w-4" />}
+                    loading={simMutation.isPending}
+                    onClick={() => simMutation.mutate()}
+                  >
+                    Run Simulation Analysis
+                  </Button>
+                </div>
+
+                {/* Simulation Output Card */}
+                <div className="p-5 rounded-xl border border-blue-500/30 bg-blue-500/5 flex flex-col justify-between">
+                  {simResult ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-blue-500/20 pb-3">
+                        <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+                          Scenario Results
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          +{simResult.delta.score_improvement} Points Gain
+                        </span>
+                      </div>
+
+                      {/* Before / After Comparison */}
+                      <div className="grid grid-cols-2 gap-3 text-center">
+                        <div className="bg-[var(--surface)] p-3 rounded-lg border border-[var(--border)]">
+                          <span className="text-[10px] uppercase text-[var(--text-3)] font-bold block mb-1">Baseline Match</span>
+                          <span className="text-xl font-extrabold font-mono text-[var(--text-2)]">{Math.round(simResult.baseline.overall_score)}%</span>
+                          <span className="text-[10px] block text-[var(--text-3)] mt-0.5">{simResult.baseline.win_probability_pct}% win prob</span>
+                        </div>
+                        <div className="bg-[var(--surface)] p-3 rounded-lg border border-emerald-500/30">
+                          <span className="text-[10px] uppercase text-emerald-400 font-bold block mb-1">Simulated Match</span>
+                          <span className="text-xl font-extrabold font-mono text-emerald-400">{Math.round(simResult.simulated.overall_score)}%</span>
+                          <span className="text-[10px] block text-emerald-400/80 mt-0.5">{simResult.simulated.win_probability_pct}% win prob</span>
+                        </div>
+                      </div>
+
+                      {/* Resolved Blockers */}
+                      {simResult.resolved_blockers && simResult.resolved_blockers.length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-2)]">
+                            Blockers Resolved in Scenario
+                          </p>
+                          {simResult.resolved_blockers.map((b, i) => (
+                            <div key={i} className="flex items-start gap-2 text-xs text-[var(--text-1)]">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 mt-0.5 shrink-0" />
+                              <span>{b}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Strategic Recommendation */}
+                      <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-2)]">
+                        <strong className="text-[var(--text-1)]">AI Execution Strategy: </strong>
+                        {simResult.strategic_recommendation}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2">
+                      <Sliders className="h-8 w-8 text-blue-400/60" />
+                      <p className="text-sm font-semibold text-[var(--text-1)]">Counterfactual Simulator Ready</p>
+                      <p className="text-xs text-[var(--text-3)] max-w-xs">
+                        Configure team or credential options and click &quot;Run Simulation Analysis&quot; to test pursuability.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>

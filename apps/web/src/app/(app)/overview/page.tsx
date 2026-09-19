@@ -4,6 +4,8 @@ import { analyticsApi } from '@/lib/api/analytics'
 import { opportunitiesApi } from '@/lib/api/opportunities'
 import { applicationsApi } from '@/lib/api/applications'
 import { alertsApi } from '@/lib/api/alerts'
+import { businessProfileApi } from '@/lib/api/business-profile'
+import { intelligenceApi } from '@/lib/api/intelligence'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { MetricCard } from '@/components/ui/metric-card'
 import { OpportunityCard, CardSkeleton } from '@/components/opportunity/opportunity-card'
@@ -15,7 +17,8 @@ import { getGreeting, timeAgo, formatCurrency, cn } from '@/lib/utils'
 import { getRoleBadgeConfig, RolePermissions } from '@/lib/permissions'
 import { 
   Bell, Clock, Target, TrendingUp, Shield, FolderOpen, 
-  Sparkles, CheckCircle2, FileText, ArrowRight, Bot, Lock, Award
+  Sparkles, CheckCircle2, FileText, ArrowRight, Bot, Lock, Award,
+  Fingerprint, Zap, Layers, AlertCircle, Calendar, ArrowUpRight
 } from 'lucide-react'
 
 export default function OverviewPage() {
@@ -42,6 +45,16 @@ export default function OverviewPage() {
   const { data: alerts, isLoading: alertsLoading } = useQuery({
     queryKey: ['alerts'],
     queryFn: () => alertsApi.list({ page_size: 5 }),
+  })
+
+  const { data: businessContext } = useQuery({
+    queryKey: ['business-context'],
+    queryFn: businessProfileApi.getContext,
+  })
+
+  const { data: workQueue, isLoading: queueLoading } = useQuery({
+    queryKey: ['smart-work-queue'],
+    queryFn: intelligenceApi.getWorkQueue,
   })
 
   const firstName = user?.full_name?.split(' ')[0] || 'there'
@@ -92,6 +105,22 @@ export default function OverviewPage() {
             </h1>
             <span className={cn('px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider', roleConfig.color)}>
               {roleConfig.label}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+            <span className="text-xs font-semibold text-[var(--text-1)]">
+              {businessContext?.company_name || user?.organization_name || 'Your Enterprise'}
+            </span>
+            <span className="text-[10px] text-[var(--text-3)]">•</span>
+            <span className="text-[11px] text-[var(--text-2)]">
+              {businessContext?.industry || 'Technology & Services'}
+            </span>
+            <span className="text-[10px] text-[var(--text-3)]">•</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              DNA v{businessContext?.version || 1} ({businessContext?.completeness?.score || 100}% Complete)
+            </span>
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              {businessContext?.readiness?.tier || 'Ready to Bid'}
             </span>
           </div>
           <p className="text-xs sm:text-sm" style={{ color: 'var(--text-2)' }}>
@@ -267,6 +296,98 @@ export default function OverviewPage() {
           />
         </div>
       )}
+
+      {/* SMART WORK QUEUE — "WHAT SHOULD WE DO THIS WEEK?" */}
+      <section className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+              <Zap className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-[var(--text-1)]">
+                  Smart Work Queue — What Should We Do This Week?
+                </h2>
+                {workQueue && workQueue.critical_count > 0 && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">
+                    {workQueue.critical_count} Urgent
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-[var(--text-2)]">
+                Prioritized weekly agenda dynamically computed from your active pursuits, closing windows, and verified Business DNA.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" onClick={() => router.push('/whitespace')}>
+              <Layers className="h-3.5 w-3.5 mr-1 text-cyan-400" />
+              Whitespace Engine
+            </Button>
+          </div>
+        </div>
+
+        {queueLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="skeleton h-24 rounded-xl" />
+            ))}
+          </div>
+        ) : (!workQueue || workQueue.items.length === 0) ? (
+          <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-center">
+            <CheckCircle2 className="h-5 w-5 text-emerald-500 mx-auto mb-1" />
+            <p className="text-xs font-semibold text-[var(--text-1)]">All weekly priority actions completed</p>
+            <p className="text-[11px] text-[var(--text-3)] mt-0.5">Explore new opportunities in Radar or run the Opportunity Simulator.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {workQueue.items.map((item) => (
+              <div
+                key={item.id}
+                className={cn(
+                  "p-3.5 rounded-xl border bg-[var(--bg)] flex flex-col justify-between gap-3 transition-colors",
+                  item.priority === 'critical' ? 'border-red-500/30 hover:border-red-500/50' :
+                  item.priority === 'high' ? 'border-amber-500/30 hover:border-amber-500/50' :
+                  'border-[var(--border)] hover:border-blue-500/50'
+                )}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className={cn(
+                      "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border",
+                      item.priority === 'critical' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                      item.priority === 'high' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                      'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                    )}>
+                      {item.priority}
+                    </span>
+                    <span className="text-[11px] font-mono text-[var(--text-3)] flex items-center gap-1">
+                      <Calendar className="h-3 w-3" /> {item.due_date}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold text-[var(--text-1)] leading-snug">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-[var(--text-2)] mt-1 line-clamp-2">
+                    {item.description}
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-[var(--border)] flex justify-end">
+                  <Button
+                    size="sm"
+                    variant={item.priority === 'critical' ? 'default' : 'outline'}
+                    rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
+                    onClick={() => router.push(item.action_url)}
+                  >
+                    {item.action_label}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* MANAGER & MEMBER PIPELINE TRACKER */}
       {(role === 'manager' || role === 'member' || role === 'owner') && applications && applications.length > 0 && (

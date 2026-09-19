@@ -98,7 +98,7 @@ export default function RadarPage() {
           {[...Array(6)].map((_, i) => <CardSkeleton key={i} />)}
         </div>
       ) : query.data?.data.length === 0 ? (
-        <EmptyState title="No opportunities found" description="Try adjusting your search or filters." />
+        <EmptyState title="No opportunities match your filters" description="Try adjusting your keywords or clearing active filters." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {query.data?.data.map(opp => <OpportunityCard key={opp.id} opportunity={opp} />)}

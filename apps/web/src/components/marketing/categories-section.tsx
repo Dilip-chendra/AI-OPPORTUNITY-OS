@@ -4,13 +4,13 @@ import { Building2, Wallet, Briefcase, Globe, Handshake, Lightbulb, FlaskConical
 
 export function CategoriesSection() {
   const categories = [
-    { name: 'Government', icon: <Building2 className="h-5 w-5 text-cyan-500" />, href: '/government', desc: 'Central, state, municipal tenders, GeM empanelments, and public sector RFPs.', count: '14,000+' },
-    { name: 'Funding & Grants', icon: <Wallet className="h-5 w-5 text-emerald-500" />, href: '/funding', desc: 'MSME subsidies, Startup India schemes, non-dilutive innovation grants.', count: '3,800+' },
-    { name: 'Corporate RFPs', icon: <Briefcase className="h-5 w-5 text-amber-500" />, href: '/corporate', desc: 'Enterprise vendor empanelments, supplier portals, and private B2B contracts.', count: '8,900+' },
-    { name: 'Global & Exports', icon: <Globe className="h-5 w-5 text-indigo-400" />, href: '/global', desc: 'World Bank, UN, EU Horizon, and international cross-border procurement.', count: '5,100+' },
-    { name: 'Partnerships', icon: <Handshake className="h-5 w-5 text-zinc-300" />, href: '/partnerships', desc: 'Co-bidding alliances, consortium invites, and channel partner programs.', count: '1,400+' },
-    { name: 'Innovation & Tech', icon: <Lightbulb className="h-5 w-5 text-cyan-400" />, href: '/innovation', desc: 'Hackathons, deep-tech grand challenges, and smart city pilot bids.', count: '2,200+' },
-    { name: 'Research Consortia', icon: <FlaskConical className="h-5 w-5 text-rose-400" />, href: '/research', desc: 'University R&D collaborations, tech commercialization grants.', count: '950+' },
+    { name: 'Government', icon: <Building2 className="h-5 w-5 text-cyan-500" />, href: '/government', desc: 'Central, state, municipal tenders, GeM empanelments, and public sector RFPs.', count: 'Public Tenders' },
+    { name: 'Funding & Grants', icon: <Wallet className="h-5 w-5 text-emerald-500" />, href: '/funding', desc: 'MSME subsidies, Startup India schemes, non-dilutive innovation grants.', count: 'Subsidies & Grants' },
+    { name: 'Corporate RFPs', icon: <Briefcase className="h-5 w-5 text-amber-500" />, href: '/corporate', desc: 'Enterprise vendor empanelments, supplier portals, and private B2B contracts.', count: 'Enterprise Contracts' },
+    { name: 'Global & Exports', icon: <Globe className="h-5 w-5 text-indigo-400" />, href: '/global', desc: 'World Bank, UN, EU Horizon, and international cross-border procurement.', count: 'Multilateral Bids' },
+    { name: 'Partnerships', icon: <Handshake className="h-5 w-5 text-zinc-300" />, href: '/partnerships', desc: 'Co-bidding alliances, consortium invites, and channel partner programs.', count: 'Consortium Co-Bids' },
+    { name: 'Innovation & Tech', icon: <Lightbulb className="h-5 w-5 text-cyan-400" />, href: '/innovation', desc: 'Hackathons, deep-tech grand challenges, and smart city pilot bids.', count: 'Grand Challenges' },
+    { name: 'Research Consortia', icon: <FlaskConical className="h-5 w-5 text-rose-400" />, href: '/research', desc: 'University R&D collaborations, tech commercialization grants.', count: 'Academic R&D' },
   ]
 
   return (

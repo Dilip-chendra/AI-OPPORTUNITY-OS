@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { authApi } from '@/lib/api/auth'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -8,13 +8,23 @@ import { useAuth } from '@/lib/hooks/use-auth'
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('')
+function LoginForm() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialEmail = searchParams.get('email') || ''
+  const resetSuccess = searchParams.get('reset') === 'success'
+
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
   const { setUser } = useAuth()
+
+  useEffect(() => {
+    if (initialEmail && !email) {
+      setEmail(initialEmail)
+    }
+  }, [initialEmail, email])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,12 +40,75 @@ export default function LoginPage() {
       router.push('/overview')
     } catch (err: any) {
       const detail = err.response?.data?.detail
-      setError(detail || (err.response?.status === 401 ? 'Invalid email or password. If you do not have an account yet, please sign up below.' : err.message || 'Login failed'))
+      setError(detail || (err.response?.status === 401 ? 'Invalid email or password.' : err.message || 'Login failed'))
     } finally {
       setLoading(false)
     }
   }
 
+  return (
+    <div className="w-full max-w-md space-y-8">
+      <div>
+        <h2 className="text-3xl font-bold text-[var(--text-1)]">Welcome back</h2>
+        <p className="mt-2 text-[var(--text-2)]">Sign in to your account</p>
+      </div>
+
+      {resetSuccess && (
+        <div className="p-3 text-sm rounded-lg bg-green-500/10 border border-green-500/20 text-green-400">
+          Password reset successful! Please sign in with your new password.
+        </div>
+      )}
+
+      <form onSubmit={handleLogin} className="space-y-5">
+        <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium" style={{ color: 'var(--text-1)' }}>
+              Password
+            </label>
+            <Link
+              href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+              className="text-xs text-blue-500 hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </div>
+          <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+        </div>
+
+        {error && (
+          <div className="p-3 text-sm rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 space-y-1">
+            <div>{error}</div>
+            {error.includes('Invalid email or password') && (
+              <div className="text-xs text-slate-300 pt-1">
+                Forgot your password?{' '}
+                <Link
+                  href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+                  className="text-blue-400 hover:underline font-medium"
+                >
+                  Reset it here
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? 'Signing in...' : 'Sign In'}
+        </Button>
+      </form>
+
+      <div className="flex items-center justify-between text-sm text-[var(--text-2)] pt-2 border-t border-[var(--border)]">
+        <span>Don't have an account? <Link href="/signup" className="text-blue-500 hover:underline font-medium">Sign up</Link></span>
+        <Link href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`} className="text-xs text-[var(--text-3)] hover:text-blue-500 hover:underline">
+          Reset password
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+export default function LoginPage() {
   return (
     <div className="flex h-screen w-full">
       <div className="hidden lg:flex w-1/2 bg-[#0A0F1E] flex-col justify-between p-12 text-white">
@@ -52,29 +125,11 @@ export default function LoginPage() {
         </div>
       </div>
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[var(--bg)]">
-        <div className="w-full max-w-md space-y-8">
-          <div>
-            <h2 className="text-3xl font-bold text-[var(--text-1)]">Welcome back</h2>
-            <p className="mt-2 text-[var(--text-2)]">Sign in to your account</p>
-          </div>
-          <form onSubmit={handleLogin} className="space-y-6">
-            <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-            <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-            {error && (
-              <div className="p-3 text-sm rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
-                {error}
-              </div>
-            )}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
-
-          <div className="text-center text-sm text-[var(--text-2)]">
-            Don't have an account? <Link href="/signup" className="text-blue-500 hover:underline">Sign up</Link>
-          </div>
-        </div>
+        <Suspense fallback={<div className="text-sm text-slate-400">Loading sign in form...</div>}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   )
 }
+

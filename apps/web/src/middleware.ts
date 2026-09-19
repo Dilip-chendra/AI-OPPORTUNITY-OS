@@ -22,7 +22,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/applications') || pathname.startsWith('/workspace') ||
     pathname.startsWith('/ai-analyst') || pathname.startsWith('/business-dna') ||
     pathname.startsWith('/alerts') || pathname.startsWith('/analytics') ||
-    pathname.startsWith('/settings')
+    pathname.startsWith('/whitespace') || pathname.startsWith('/settings')
   
   if (isApp && !token) {
     const res = NextResponse.redirect(new URL('/login', request.url))

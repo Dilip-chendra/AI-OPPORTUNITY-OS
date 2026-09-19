@@ -10,9 +10,12 @@ from app.models.notification import Notification
 from app.models.ai_conversation import AIConversation
 from app.models.audit_log import AuditLog
 from app.models.evidence_document import EvidenceDocument
+from app.models.business_profile_version import BusinessProfileVersion
+from app.models.opportunity_thread import OpportunityThread
 
 __all__ = [
     'Base', 'User', 'Organization', 'BusinessProfile', 'Opportunity',
     'OpportunityScore', 'SavedOpportunity', 'Application', 'Notification',
-    'AIConversation', 'AuditLog', 'EvidenceDocument'
+    'AIConversation', 'AuditLog', 'EvidenceDocument',
+    'BusinessProfileVersion', 'OpportunityThread'
 ]

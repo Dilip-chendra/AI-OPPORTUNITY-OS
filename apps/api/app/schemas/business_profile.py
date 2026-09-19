@@ -128,3 +128,75 @@ class BusinessProfileResponse(BaseModel):
 class OnboardingStepRequest(BaseModel):
     step: int
     data: Dict[str, Any]
+
+
+class BusinessProfileVersionResponse(BaseModel):
+    id: str
+    version: int
+    changed_fields: Optional[List[str]] = None
+    diff: Optional[Dict[str, Any]] = None
+    reason: Optional[str] = None
+    impact_summary: Optional[Dict[str, Any]] = None
+    created_at: Optional[datetime] = None
+    model_config = {'from_attributes': True}
+
+
+class CompletenessResponse(BaseModel):
+    score: int
+    is_complete: bool
+    passed_count: int
+    total_checks: int
+    missing_items: List[Dict[str, Any]]
+
+
+class ReadinessResponse(BaseModel):
+    score: int
+    tier: str
+    gaps_count: int
+    gaps: List[Dict[str, Any]]
+
+
+class DNAImpactResponse(BaseModel):
+    re_evaluated: int
+    score_improved: int
+    score_decreased: int
+    newly_eligible: int
+    high_relevance_count: int
+    timestamp: str
+    trigger_reason: str
+
+
+class BusinessContextResponse(BaseModel):
+    organization_id: str
+    company_name: str
+    trade_name: Optional[str] = None
+    legal_name: Optional[str] = None
+    registration_number: Optional[str] = None
+    founded_year: Optional[str] = None
+    website: Optional[str] = None
+    linkedin: Optional[str] = None
+    country: str = "India"
+    state: Optional[str] = None
+    city: Optional[str] = None
+    description: Optional[str] = None
+    industry: str
+    sub_industry: Optional[str] = None
+    company_size: str
+    technical_headcount: str
+    business_stage: str
+    enterprise_classification: str
+    products_services: List[Any] = []
+    capabilities: List[str] = []
+    tech_stack: List[str] = []
+    certifications: List[str] = []
+    previous_projects: List[Any] = []
+    preferred_contract_min: float = 0.0
+    preferred_contract_max: float = 0.0
+    preferred_currency: str = "INR"
+    target_markets: List[str] = []
+    geographic_coverage: List[str] = []
+    documents: List[Any] = []
+    version: int = 1
+    last_updated: str
+    completeness: CompletenessResponse
+    readiness: ReadinessResponse

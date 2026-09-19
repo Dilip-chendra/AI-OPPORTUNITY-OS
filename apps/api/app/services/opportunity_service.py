@@ -36,7 +36,13 @@ class OpportunityService:
         query = query.where(Opportunity.is_expired == False)
         
         if category:
-            query = query.where(Opportunity.category == category)
+            cat_clean = category.strip().lower()
+            if cat_clean in ('partnership', 'partnerships'):
+                query = query.where(Opportunity.category.in_(['partnership', 'partnerships']))
+            elif cat_clean in ('grant', 'grants', 'funding'):
+                query = query.where(Opportunity.category.in_(['funding', 'grant', 'grants']))
+            else:
+                query = query.where(Opportunity.category.ilike(cat_clean))
         if opportunity_type:
             query = query.where(Opportunity.opportunity_type == opportunity_type)
         if geography_country:

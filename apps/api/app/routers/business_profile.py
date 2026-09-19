@@ -1,17 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from app.core.database import get_db
 from app.core.deps import get_current_user, get_current_org, require_roles
 from app.models.user import User
 from app.models.organization import Organization
 from app.models.business_profile import BusinessProfile
+from app.models.business_profile_version import BusinessProfileVersion
 from app.models.opportunity import Opportunity
 from app.models.opportunity_score import OpportunityScore
-from app.schemas.business_profile import BusinessProfileUpdate, BusinessProfileResponse, OnboardingStepRequest, DocumentMetadata
+from app.schemas.business_profile import (
+    BusinessProfileUpdate, BusinessProfileResponse, OnboardingStepRequest, DocumentMetadata,
+    BusinessContextResponse, CompletenessResponse, ReadinessResponse, DNAImpactResponse, BusinessProfileVersionResponse
+)
 from app.services.scoring_service import scoring_engine
+from app.services.business_context_service import business_context_service
 import uuid
 from datetime import datetime, timezone
+from typing import List
 
 router = APIRouter()
 
@@ -28,6 +34,88 @@ async def get_profile(
         raise HTTPException(status_code=404, detail="Profile not found")
     return profile
 
+@router.get('/context', response_model=BusinessContextResponse)
+async def get_business_context(
+    current_user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns the compiled single source of truth context for the active organization."""
+    return await business_context_service.get_context(org.id, db)
+
+@router.get('/completeness', response_model=CompletenessResponse)
+async def get_completeness(
+    current_user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db)
+):
+    """Evaluates Business DNA completeness score and returns exact missing items."""
+    ctx = await business_context_service.get_context(org.id, db)
+    return ctx["completeness"]
+
+@router.get('/readiness', response_model=ReadinessResponse)
+async def get_readiness(
+    current_user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db)
+):
+    """Evaluates commercial and procurement readiness gaps for competitive bids."""
+    ctx = await business_context_service.get_context(org.id, db)
+    return ctx["readiness"]
+
+@router.get('/impact', response_model=DNAImpactResponse)
+async def get_latest_impact(
+    current_user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns the opportunity recalculation impact metrics from the most recent DNA update."""
+    ver_res = await db.execute(
+        select(BusinessProfileVersion)
+        .where(BusinessProfileVersion.organization_id == org.id)
+        .order_by(desc(BusinessProfileVersion.version))
+        .limit(1)
+    )
+    latest = ver_res.scalar_one_or_none()
+    if not latest or not latest.impact_summary:
+        return {
+            "re_evaluated": 0,
+            "score_improved": 0,
+            "score_decreased": 0,
+            "newly_eligible": 0,
+            "high_relevance_count": 0,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "trigger_reason": "Baseline profile initialized"
+        }
+    return latest.impact_summary
+
+@router.get('/versions', response_model=List[BusinessProfileVersionResponse])
+async def get_version_history(
+    current_user: User = Depends(get_current_user),
+    org: Organization = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns the complete audit log of Business DNA versions and change diffs."""
+    res = await db.execute(
+        select(BusinessProfileVersion)
+        .where(BusinessProfileVersion.organization_id == org.id)
+        .order_by(desc(BusinessProfileVersion.version))
+        .limit(20)
+    )
+    versions = res.scalars().all()
+    return [
+        BusinessProfileVersionResponse(
+            id=str(v.id),
+            version=v.version,
+            changed_fields=v.changed_fields,
+            diff=v.diff,
+            reason=v.reason,
+            impact_summary=v.impact_summary,
+            created_at=v.created_at
+        )
+        for v in versions
+    ]
+
 @router.put('', response_model=BusinessProfileResponse)
 @router.put('/', response_model=BusinessProfileResponse)
 async def update_profile(
@@ -42,6 +130,18 @@ async def update_profile(
         raise HTTPException(status_code=404, detail="Profile not found")
     
     update_data = data.model_dump(exclude_unset=True)
+
+    # Capture snapshot before updating
+    old_snapshot = {
+        "company_name": profile.company_name,
+        "industry": profile.industry,
+        "capabilities": list(profile.capabilities or []),
+        "tech_stack": list(profile.tech_stack or []),
+        "certifications": list(profile.certifications or []),
+        "preferred_contract_min": float(profile.preferred_contract_min or 0),
+        "preferred_contract_max": float(profile.preferred_contract_max or 0),
+        "geographic_coverage": list(profile.geographic_coverage or []),
+    }
     
     # Clean capabilities and certifications if passed as strings
     if 'capabilities' in update_data and isinstance(update_data['capabilities'], str):
@@ -60,38 +160,18 @@ async def update_profile(
     await db.commit()
     await db.refresh(profile)
 
-    # Automatically recalculate scores for all indexed opportunities for this organization
+    # Emit BUSINESS_DNA_UPDATED event: versioning, re-scoring, and impact calculation
     try:
-        opp_res = await db.execute(select(Opportunity).where(Opportunity.is_expired == False))
-        opps = opp_res.scalars().all()
-        for opp in opps:
-            # Check if score exists
-            sc_res = await db.execute(
-                select(OpportunityScore).where(
-                    OpportunityScore.opportunity_id == opp.id,
-                    OpportunityScore.organization_id == org.id
-                )
-            )
-            existing_score = sc_res.scalar_one_or_none()
-            new_score = scoring_engine.compute_scores(profile, opp, org.id)
-            if existing_score:
-                existing_score.overall_score = new_score.overall_score
-                existing_score.eligibility_score = new_score.eligibility_score
-                existing_score.business_fit_score = new_score.business_fit_score
-                existing_score.capability_fit_score = new_score.capability_fit_score
-                existing_score.geographic_fit_score = new_score.geographic_fit_score
-                existing_score.value_fit_score = new_score.value_fit_score
-                existing_score.time_feasibility_score = new_score.time_feasibility_score
-                existing_score.competition_score = new_score.competition_score
-                existing_score.execution_fit_score = new_score.execution_fit_score
-                existing_score.recommendation = new_score.recommendation
-                existing_score.recommendation_reason = new_score.recommendation_reason
-            else:
-                db.add(new_score)
-        await db.commit()
+        await business_context_service.handle_dna_update(
+            profile=profile,
+            user_id=current_user.id,
+            updated_fields=update_data,
+            old_snapshot=old_snapshot,
+            reason=None,
+            db=db
+        )
     except Exception as e:
-        # Non-blocking for profile update
-        print(f"[Warning] Failed to re-score opportunities on profile update: {e}")
+        print(f"[Warning] Failed in handle_dna_update: {e}")
 
     return profile
 

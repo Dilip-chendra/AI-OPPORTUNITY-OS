@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import {
-  LayoutDashboard, Radar, Compass, Sparkles,
+  LayoutDashboard, Radar, Compass, Sparkles, Layers,
   Wallet, Building2, Briefcase, Globe, Handshake, Lightbulb, FlaskConical,
   Bookmark, FileText, FolderOpen, Bot, Shield,
   Fingerprint, Bell, BarChart3, Settings,
@@ -31,6 +31,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/overview', label: 'Overview', icon: <LayoutDashboard className="h-4 w-4" /> },
       { href: '/radar', label: 'Opportunity Radar', icon: <Radar className="h-4 w-4" /> },
+      { href: '/whitespace', label: 'Whitespace', icon: <Layers className="h-4 w-4" /> },
       { href: '/explore', label: 'Explore', icon: <Compass className="h-4 w-4" /> },
       { href: '/for-you', label: 'For You', icon: <Sparkles className="h-4 w-4" /> },
     ],

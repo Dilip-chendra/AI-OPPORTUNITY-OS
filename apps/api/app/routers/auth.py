@@ -6,7 +6,10 @@ from app.core.deps import get_current_user
 from app.core.security import decode_token, create_access_token
 from app.models.user import User
 from app.models.organization import Organization
-from app.schemas.auth import SignupRequest, LoginRequest, AuthResponse, TokenResponse, UserResponse
+from app.schemas.auth import (
+    SignupRequest, LoginRequest, AuthResponse, TokenResponse, UserResponse,
+    ForgotPasswordRequest, ForgotPasswordResponse, ResetPasswordRequest
+)
 from app.services.auth_service import auth_service
 from app.core.config import settings
 from typing import Optional
@@ -85,3 +88,11 @@ async def me(current_user: User = Depends(get_current_user), db: AsyncSession = 
         role=current_user.role,
         is_admin=current_user.is_admin
     )
+
+@router.post('/forgot-password', response_model=ForgotPasswordResponse)
+async def forgot_password(data: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    return await auth_service.forgot_password(db, data)
+
+@router.post('/reset-password')
+async def reset_password(data: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    return await auth_service.reset_password(db, data)
