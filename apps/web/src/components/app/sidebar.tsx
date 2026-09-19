@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { BrandLogo } from '@/components/brand-logo'
 
 interface NavItem {
   href: string
@@ -92,9 +93,7 @@ export function Sidebar({ collapsed, onToggleCollapse, alertCount = 0 }: Sidebar
         'flex items-center h-14 border-b border-[var(--border)] px-3',
         collapsed ? 'justify-center' : 'gap-2.5'
       )}>
-        <div className="h-7 w-7 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
-          <Zap className="h-3.5 w-3.5 text-white" />
-        </div>
+        <BrandLogo size={28} />
         {!collapsed && (
           <div>
             <p className="text-sm font-bold leading-none" style={{ color: 'var(--text-1)' }}>OpportunityOS</p>

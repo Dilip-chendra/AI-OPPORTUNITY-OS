@@ -10,6 +10,7 @@ import {
 import { authApi } from '@/lib/api/auth'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { BrandLogo } from '@/components/brand-logo'
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({ 
@@ -78,9 +79,7 @@ export default function SignupPage() {
         {/* Brand Header */}
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
-              <Zap className="h-5 w-5 text-white fill-current" />
-            </div>
+            <BrandLogo size={36} className="group-hover:scale-105 transition-transform shadow-lg shadow-white/10" />
             <div>
               <span className="text-lg font-black tracking-tight text-white">
                 Opportunity<span className="text-cyan-400">OS</span>
@@ -180,10 +179,8 @@ export default function SignupPage() {
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
           {/* Mobile Logo Header */}
-          <div className="lg:hidden flex items-center gap-2 mb-6">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center">
-              <Zap className="h-4 w-4 text-white fill-current" />
-            </div>
+          <div className="lg:hidden flex items-center gap-2.5 mb-6">
+            <BrandLogo size={30} />
             <span className="text-base font-bold text-white">
               Opportunity<span className="text-cyan-400">OS</span>
             </span>

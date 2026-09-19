@@ -7,6 +7,13 @@ import { AuthProvider } from '@/lib/hooks/use-auth'
 export const metadata: Metadata = {
   title: 'OpportunityOS — The Intelligence Layer for Business Opportunities',
   description: 'OpportunityOS continuously discovers, ranks, and helps businesses act on valuable opportunities across government tenders, grants, corporate RFPs, and global contracts.',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
