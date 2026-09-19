@@ -4,23 +4,12 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Zap, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, 
-  Sparkles, CheckCircle2, AlertCircle, Building2, Terminal,
-  Compass, Database, Target, Layers
+  CheckCircle2, AlertCircle, Terminal
 } from 'lucide-react'
 import { authApi } from '@/lib/api/auth'
+import { businessProfileApi } from '@/lib/api/business-profile'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/hooks/use-auth'
-import { cn } from '@/lib/utils'
-
-// Predefined Demo Personas for 1-Click Fast Testing
-const DEMO_PERSONAS = [
-  { role: 'Owner', email: 'owner@demo.com', name: 'Devon Vance', desc: 'Executive access, decision authority & financial oversight', badge: '👑 Owner' },
-  { role: 'Admin', email: 'admin@demo.com', name: 'Alex Mercer', desc: 'Organization management, ingestion & settings', badge: '⚡ Admin' },
-  { role: 'Manager', email: 'manager@demo.com', name: 'Morgan Riley', desc: 'Pursuit pipeline dispatch, review & deadline autopilot', badge: '🎯 Manager' },
-  { role: 'Analyst', email: 'analyst@demo.com', name: 'Sam Chen', desc: 'Deep intelligence radar, fit scoring & AI terminal', badge: '🔬 Analyst' },
-  { role: 'Member', email: 'member@demo.com', name: 'Jordan Taylor', desc: 'Execution workspace, compliance & drafting', badge: '💼 Member' },
-  { role: 'Viewer', email: 'viewer@demo.com', name: 'Valerie Croft', desc: 'Read-only portfolio access with restricted mutations', badge: '👁️ Viewer' },
-]
 
 function LoginForm() {
   const router = useRouter()
@@ -28,10 +17,10 @@ function LoginForm() {
   const initialEmail = searchParams.get('email') || ''
   const resetSuccess = searchParams.get('reset') === 'success'
 
-  const [email, setEmail] = useState(initialEmail || 'owner@demo.com')
-  const [password, setPassword] = useState('DemoPass123')
+  const [email, setEmail] = useState(initialEmail || '')
+  const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
-  const [selectedPersona, setSelectedPersona] = useState<string>('Owner')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { setUser } = useAuth()
@@ -42,24 +31,31 @@ function LoginForm() {
     }
   }, [initialEmail, email])
 
-  const handleSelectPersona = (persona: typeof DEMO_PERSONAS[0]) => {
-    setSelectedPersona(persona.role)
-    setEmail(persona.email)
-    setPassword('DemoPass123')
-    setError('')
-  }
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!email.trim()) return setError('Please enter your work email')
+    if (!password) return setError('Please enter your password')
+    
     setLoading(true)
     setError('')
     try {
-      const res = await authApi.login({ email, password })
+      const res = await authApi.login({ email: email.trim(), password })
       localStorage.setItem('access_token', res.access_token)
-      document.cookie = `access_token=${res.access_token}; path=/; max-age=86400; SameSite=Lax`
+      const maxAge = rememberMe ? 86400 * 30 : 86400
+      document.cookie = `access_token=${res.access_token}; path=/; max-age=${maxAge}; SameSite=Lax`
       if (res.user) {
         setUser(res.user)
       }
+
+      // Check if onboarding is completed for this user
+      try {
+        const profile = await businessProfileApi.get()
+        if (profile && !profile.onboarding_completed) {
+          router.push('/onboard')
+          return
+        }
+      } catch {}
+
       router.push('/overview')
     } catch (err: any) {
       const detail = err.response?.data?.detail
@@ -92,44 +88,6 @@ function LoginForm() {
         </div>
       )}
 
-      {/* 1-Click Fast Demo Persona Switcher */}
-      <div className="p-3.5 rounded-2xl bg-[#111728]/90 border border-slate-800/80 space-y-2.5">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-cyan-400" /> Test with 1-Click Demo Persona
-          </span>
-          <span className="text-[10px] font-mono text-cyan-400/90 font-medium">Click to Fill</span>
-        </div>
-
-        <div className="grid grid-cols-3 gap-1.5">
-          {DEMO_PERSONAS.map((p) => {
-            const isSelected = selectedPersona === p.role && email === p.email
-            return (
-              <button
-                key={p.role}
-                type="button"
-                onClick={() => handleSelectPersona(p)}
-                className={cn(
-                  "px-2 py-1.5 rounded-lg text-xs font-semibold border transition-all text-center truncate",
-                  isSelected
-                    ? "bg-blue-600/30 text-cyan-300 border-cyan-500/50 shadow-xs"
-                    : "bg-[#182138]/60 text-slate-400 border-slate-700/60 hover:border-slate-600 hover:text-slate-200"
-                )}
-                title={`${p.name} (${p.role}): ${p.desc}`}
-              >
-                {p.badge}
-              </button>
-            )
-          })}
-        </div>
-
-        {selectedPersona && (
-          <p className="text-[10px] text-slate-400 italic pt-0.5 truncate">
-            Active Persona: <span className="text-cyan-300 font-medium">{DEMO_PERSONAS.find(p => p.role === selectedPersona)?.name}</span> • {DEMO_PERSONAS.find(p => p.role === selectedPersona)?.desc}
-          </p>
-        )}
-      </div>
-
       {/* Login Credentials Form */}
       <form onSubmit={handleLogin} className="space-y-4">
         {/* Email Field */}
@@ -146,6 +104,7 @@ function LoginForm() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
+              autoFocus
               placeholder="name@company.com"
               className="w-full h-11 pl-10 pr-4 rounded-xl bg-[#111728] border border-slate-700 text-white text-sm placeholder:text-slate-500 focus:outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
             />
@@ -174,7 +133,7 @@ function LoginForm() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              placeholder="••••••••••••"
+              placeholder="Enter your password"
               className="w-full h-11 pl-10 pr-11 rounded-xl bg-[#111728] border border-slate-700 text-white text-sm placeholder:text-slate-500 focus:outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
             />
             <button
@@ -187,6 +146,19 @@ function LoginForm() {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
+        </div>
+
+        {/* Keep signed in checkbox */}
+        <div className="flex items-center justify-between pt-1">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={e => setRememberMe(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-700 bg-[#111728] text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+            />
+            <span className="text-xs text-slate-400">Remember this device</span>
+          </label>
         </div>
 
         {/* Error Alert */}

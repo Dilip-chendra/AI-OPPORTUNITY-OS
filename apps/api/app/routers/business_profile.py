@@ -230,4 +230,18 @@ async def complete_onboarding(
     if profile:
         profile.onboarding_completed = True
         await db.commit()
+        await db.refresh(profile)
+        # Ensure opportunity scoring runs for newly onboarded organization
+        try:
+            await business_context_service.handle_dna_update(
+                profile=profile,
+                user_id=current_user.id,
+                updated_fields={"onboarding_completed": True},
+                old_snapshot={"onboarding_completed": False},
+                reason="Onboarding completed — baseline intelligence calibrated",
+                db=db
+            )
+        except Exception as e:
+            print(f"[Warning] Failed to calibrate initial DNA in complete_onboarding: {e}")
     return {"message": "Onboarding completed"}
+
